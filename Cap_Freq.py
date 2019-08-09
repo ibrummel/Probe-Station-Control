@@ -19,6 +19,7 @@ class CapFreqWidget (QWidget):
         self.num_measurements = 1
         self.save_file_path = os.path.join(os.getenv('USERPROFILE'), 'Desktop')
 
+        # Define controls for the overall measuring parameters
         self.measuring_param_box = QGroupBox('Measuring Parameters:')
         self.function_combo = QComboBox()
         self.measuring_time_combo = QComboBox()
@@ -29,12 +30,14 @@ class CapFreqWidget (QWidget):
         self.save_file_ln = QLineEdit()
         self.save_file_btn = QToolButton()
 
+        # Define controls for the per measurement settings
         self.meas_setup_box = QGroupBox('Measurement(s) Setup:')
         self.num_measurements_ln = QLineEdit(str(self.num_measurements))
         self.meas_setup_table = QTableWidget()
         self.meas_setup_hheaders = ['Frequency\nStart [Hz]', 'Frequency\nStop [Hz]', 'Oscillator [V]', 'DC Bias [V]']
         self.meas_setup_vheaders = ['M1', 'M2', 'M3', 'M4']
 
+        # Initialize widget bits
         self.init_connections()
         self.init_control_setup()
         self.init_layout()
@@ -187,7 +190,14 @@ class CapFreqWidget (QWidget):
         pass
 
     def generate_test_matrix(self):
-        pass
+        tests_df = pd.DataFrame(data=None, index=self.meas_setup_vheaders, columns=self.meas_setup_hheaders)
+
+        for irow in range(0, self.meas_setup_table.rowCount()):
+            for icol in range(0, self.meas_setup_table.columnCount()):
+                tests_df.iloc[irow, icol] = self.meas_setup_table.item(irow, icol).text()
+
+        print(tests_df)
+
 
     def measure(self):
         pass

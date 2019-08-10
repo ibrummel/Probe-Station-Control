@@ -1,17 +1,20 @@
 from Agilent_E4980A_Constants import *
 
 import visa
-from PyQt5.QtWidgets import QWidget, QDialog, QComboBox, QPushButton, QFormLayout, QLabel
+from PyQt5.QtCore import QObject
+from PyQt5.QtCore import pyqtSignal
 from InstrumentSelectBox import InstrumentSelectBox
 
 
-class AgilentE4980A(QWidget):
+class AgilentE4980A(QObject):
     def __init__(self):
         super().__init__()
 
         self.rm = visa.ResourceManager()
         self.select_box = InstrumentSelectBox(self.rm)
         self.lcr_addr = ''
+
+        self.new_data = pyqtSignal(list)
 
         try:
             self.lcr = self.connect_lcr()
@@ -74,7 +77,7 @@ class AgilentE4980A(QWidget):
         elif write_or_build.lower() == 'build':
             return command
 
-    def trigger_delay(self, delay: float, write_or_build='write'):
+    def trigger_delay(self, delay, write_or_build='write'):
         command = ':TRIG:TDEL {}'.format(delay)
 
         if write_or_build.lower() == 'write':
@@ -82,7 +85,7 @@ class AgilentE4980A(QWidget):
         elif write_or_build.lower() == 'build':
             return command
 
-    def step_delay(self, delay: float, write_or_build='write'):
+    def step_delay(self, delay, write_or_build='write'):
         command = ':TRIG:DEL {}'.format(delay)
 
         if write_or_build.lower() == 'write':
@@ -90,7 +93,7 @@ class AgilentE4980A(QWidget):
         elif write_or_build.lower() == 'build':
             return command
 
-    def measurement_aperture(self, time: str, avg: int, write_or_build='write'):
+    def measurement_aperture(self, time: str, avg, write_or_build='write'):
         try:
             command = ':APER {}, {}'.format(MEASURE_TIME_DICT[time], avg)
         except KeyError:
@@ -101,7 +104,7 @@ class AgilentE4980A(QWidget):
         elif write_or_build.lower() == 'build':
             return command
 
-    def signal_frequency(self, freq: int, write_or_build='write'):
+    def signal_frequency(self, freq, write_or_build='write'):
         command = ':FREQ {}'.format(int(freq))
 
         if write_or_build.lower() == 'write':
@@ -109,23 +112,22 @@ class AgilentE4980A(QWidget):
         elif write_or_build.lower() == 'build':
             return command
 
-    def signal_voltage(self, voltage: float, write_or_build='write'):
-        command = ':VOLT {}'.format(voltage)
+    def get_signal_frequency(self):
+        freq = self.lcr.write(':FREQ?')
+        return int(freq)
 
-        if write_or_build.lower() == 'write':
-            self.lcr.write(command)
-        elif write_or_build.lower() == 'build':
-            return command
-
-    def signal_current(self, current: float, write_or_build='write'):
-        command = ':CURR {}'.format(current)
+    def signal_level(self, signal_type: str, level, write_or_build='write'):
+        if signal_type.lower() == 'voltage':
+            command = ':VOLT {}'.format(level)
+        elif signal_type.lower() == 'current':
+            command = ':CURR {}'.format(level)
 
         if write_or_build.lower() == 'write':
             self.lcr.write(command)
         elif write_or_build.lower() == 'build':
             return command
     
-    def dc_bias_state(self, state: str, write_or_build='write'):
+    def dc_bias_state(self, state, write_or_build='write'):
         if state.lower() == 'on':
             state = 'ON'
         elif state.lower() == 'off':
@@ -138,16 +140,11 @@ class AgilentE4980A(QWidget):
         elif write_or_build.lower() == 'build':
             return command
 
-    def dc_bias_voltage(self, voltage: float, write_or_build='write'):
-        command = ':BIAS:VOLT {}'.format(voltage)
-
-        if write_or_build.lower() == 'write':
-            self.lcr.write(command)
-        elif write_or_build.lower() == 'build':
-            return command
-
-    def dc_bias_current(self, current: float, write_or_build='write'):
-        command = ':BIAS:VOLT {}'.format(current)
+    def dc_bias_level(self, bias_type, level, write_or_build='write'):
+        if bias_type.lower() == 'voltage':
+            command = ':BIAS:VOLT {}'.format(level)
+        elif bias_type.lower() == 'current':
+            command = ':BIAS:CURR {}'.format(level)
 
         if write_or_build.lower() == 'write':
             self.lcr.write(command)
@@ -156,8 +153,11 @@ class AgilentE4980A(QWidget):
 
     def get_data(self):
         data = self.lcr.query(':FETC?')
+        data = data.rstrip().split(',')
 
-        return data.rstrip().split(',')
+        self.new_data.emit(data)
+        return data
+
 
     def get_function_parameters(self):
         func_params = PARAMETERS_BY_FUNC[self.lcr.query(':FUNC:IMP?').rstrip()]

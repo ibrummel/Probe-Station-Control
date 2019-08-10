@@ -1,8 +1,12 @@
+import time
+
+from PyQt5.QtGui import QIcon, QFont
 from PyQt5.QtWidgets import (QWidget, QComboBox, QLineEdit, QLabel, QFormLayout, QVBoxLayout,
-                             QGroupBox, QTableWidget, QTableWidgetItem, QHBoxLayout,
-                             QToolButton, QApplication, QFileDialog, QFrame)
-from PyQt5.QtCore import QTimer, QThread, Qt
+                             QGroupBox, QTableWidget, QTableWidgetItem, QHBoxLayout, QMessageBox,
+                             QToolButton, QApplication, QFileDialog, QFrame, QStyleFactory)
+from PyQt5.QtCore import QTimer, QThread, Qt, QSize
 import sys
+from pathlib import Path
 import os
 from io import StringIO
 import pandas as pd
@@ -11,7 +15,8 @@ from datetime import datetime
 from Live_Data_Plotter import LivePlotWidget
 # from Agilent_E4980A import AgilentE4980A
 from fake_E4980 import AgilentE4980A
-from Agilent_E4980A_Constants import *
+import Agilent_E4980A_Constants as Const
+import FormatLib
 from File_Print_Headers import *
 
 
@@ -26,6 +31,8 @@ class CapFreqWidget (QWidget):
         self.num_measurements = 1
         self.frequency = self.lcr.get_signal_frequency()
         self.tests_df = pd.DataFrame()
+        self.data_dict = {}
+        self.header_dict = {}
         self.save_file_path = os.path.join(os.getenv('USERPROFILE'), 'Desktop')
 
         # Create a thread to hold the instrument class as a worker
@@ -50,16 +57,16 @@ class CapFreqWidget (QWidget):
         self.num_measurements_ln = QLineEdit(str(self.num_measurements))
         self.meas_setup_table = QTableWidget()
         self.meas_setup_hheaders = ['Frequency\nStart [Hz]', 'Frequency\nStop [Hz]', 'Oscillator [V]', 'DC Bias [V]']
-        self.meas_setup_vheaders = ['M1', 'M2', 'M3', 'M4']
+        self.meas_setup_vheaders = ['M1']
 
         # Define stuff for live plotting and value readout
-        self.val1_frame = QFrame()
+        self.val1_frame = QGroupBox()
         self.val1_lbl = QLabel()
         self.val1_live_plot = LivePlotWidget(['Frequency [Hz]', 'val_params[0]'],
                                              lead=False,
                                              head=True,
                                              draw_interval=350)
-        self.val2_frame = QFrame()
+        self.val2_frame = QGroupBox()
         self.val2_lbl = QLabel()
         self.val2_live_plot = LivePlotWidget(['Frequency [Hz]', 'val_params[1]'],
                                              lead=False,
@@ -107,22 +114,39 @@ class CapFreqWidget (QWidget):
         self.meas_setup_table.setWordWrap(True)
         self.meas_setup_table.resizeColumnsToContents()
         self.add_table_items()
-        self.meas_setup_table.item(0, 0).setText('1e6')
+        self.meas_setup_table.item(0, 0).setText('1000000')
         self.meas_setup_table.item(0, 1).setText('20')
         self.meas_setup_table.item(0, 2).setText('0.05')
         self.meas_setup_table.item(0, 3).setText('0')
 
         # Set up comboboxes
-        self.range_combo.addItems(VALID_IMP_RANGES)
-        self.function_combo.addItems(list(FUNC_DICT.keys()))
-        self.measuring_time_combo.addItems(list(MEASURE_TIME_DICT.keys()))
+        self.range_combo.addItems(Const.VALID_IMP_RANGES)
+        self.function_combo.addItems(list(Const.FUNC_DICT.keys()))
+        self.measuring_time_combo.addItems(list(Const.MEASURE_TIME_DICT.keys()))
         self.signal_type_combo.addItems(['Voltage', 'Current'])
         self.bias_type_combo.addItems(['Voltage', 'Current'])
 
+        # Set up tool buttons
+        save_icon = QIcon()
+        run_icon = QIcon()
+        save_icon_path = Path('src/img').absolute() / 'save.svg'
+        run_icon_path = Path('src/img').absolute() / 'run.svg'
+        save_icon.addFile(str(save_icon_path))
+        run_icon.addFile(str(run_icon_path))
+
+        self.save_file_btn.setIcon(save_icon)
+        self.start_meas_btn.setIcon(run_icon)
+        self.start_meas_btn.setIconSize(QSize(60, 60))
+        self.start_meas_btn.setFont(FormatLib.RUN_BTN_FONT)
+        self.start_meas_btn.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        self.start_meas_btn.setText('Run Measurement Set')
+
         # Set up live readout labels
-        live_data_lbl_stylesheet = 'QLabel {font-weight: bold; color: black; font-size: 150px; background-color: grey}'
-        self.val1_lbl.setStyleSheet(live_data_lbl_stylesheet)
-        self.val2_lbl.setStyleSheet(live_data_lbl_stylesheet)
+        self.val1_lbl.setStyleSheet(FormatLib.LIVE_VAL_LBL_STYLE)
+        self.val1_lbl.setFrameStyle(QFrame.Raised)
+        self.val2_lbl.setStyleSheet(FormatLib.LIVE_VAL_LBL_STYLE)
+        self.val2_lbl.setFrameStyle(QFrame.Sunken)
+        self.val2_lbl.setLineWidth(3)
 
         # Set up timers
         self.live_readout_timer.start(500)
@@ -131,7 +155,7 @@ class CapFreqWidget (QWidget):
         self.update_live_readout()
 
     def init_layout(self):
-        config_width = 706
+        config_width = 662
 
         # Set widget geometry
         self.sizePolicy().setHeightForWidth(True)
@@ -182,22 +206,23 @@ class CapFreqWidget (QWidget):
         self.config_controls_vbox.addWidget(self.measuring_param_box)
         self.config_controls_vbox.addWidget(self.meas_setup_box)
         self.config_controls_vbox.addWidget(self.start_meas_btn)
+        self.config_controls_vbox.setAlignment(self.start_meas_btn, Qt.AlignHCenter)
 
         ###
         # Initialize the live values layouts
         val1_vbox = QVBoxLayout()
-        val1_vbox.addWidget(self.val1_lbl)
-        val1_vbox.addWidget(self.val1_live_plot)
+        val1_vbox.addWidget(self.val1_lbl, 10)
+        val1_vbox.addWidget(self.val1_live_plot, 90)
         self.val1_frame.setLayout(val1_vbox)
 
         val2_vbox = QVBoxLayout()
-        val2_vbox.addWidget(self.val2_lbl)
-        val2_vbox.addWidget(self.val2_live_plot)
+        val2_vbox.addWidget(self.val2_lbl, 10)
+        val2_vbox.addWidget(self.val2_live_plot, 90)
         self.val2_frame.setLayout(val2_vbox)
 
         vals_hbox = QHBoxLayout()
-        vals_hbox.addWidget(self.val1_frame)
-        vals_hbox.addWidget(self.val2_frame)
+        vals_hbox.addWidget(self.val1_frame, 50)
+        vals_hbox.addWidget(self.val2_frame, 50)
 
         ###
         # Set overall layout up
@@ -235,8 +260,18 @@ class CapFreqWidget (QWidget):
         file_name = QFileDialog.getSaveFileName(self,
                                                 'Select a file to save data...',
                                                 self.save_file_path,
-                                                "All Types (*)")
+                                                "All Types (*.*)",
+                                                options=QFileDialog.DontConfirmOverwrite)
         self.save_file_path = file_name[0]
+        if not os.path.exists(os.path.dirname(os.path.abspath(self.save_file_path))):
+            try:
+                os.mkdir(os.path.dirname(os.path.abspath(self.save_file_path)))
+            except PermissionError:
+                permission_denied = QMessageBox.warning(self, 'Permission Denied',
+                                                        'Permission to create the specified folder was denied. \
+                                                        Please pick another location to save your data',
+                                                        QMessageBox.OK, QMessageBox.Ok)
+                self.open_save_dialog()
         self.save_file_ln.setText(self.save_file_path)
         self.print_size()
 
@@ -321,6 +356,20 @@ class CapFreqWidget (QWidget):
             widget.setEnabled(enable)
 
     def measure(self):
+        if os.path.isfile(self.save_file_path):
+            overwrite = QMessageBox.warning(self, 'File already exists',
+                                            'This data file already exists. Would you like to overwrite?',
+                                            QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel,
+                                            QMessageBox.No)
+            if overwrite == QMessageBox.No:
+                self.open_save_dialog()
+                self.measure()
+            elif overwrite == QMessageBox.Cancel:
+                cancel = QMessageBox.information(self, 'Measurement canceled',
+                                                 'Measurement cancelled by user.',
+                                                 QMessageBox.Ok, QMessageBox.Ok)
+                return
+
         self.enable_controls(False)
         self.generate_test_matrix()
 
@@ -331,12 +380,14 @@ class CapFreqWidget (QWidget):
                 break
             self.lcr.dc_bias_state('off')
 
+        # Set up the data column headers
+        columns = Const.PARAMETERS_BY_FUNC[Const.FUNC_DICT[self.function_combo.currentText()]]
+        columns.insert(0, 'Frequency [Hz]')
         # For each measurement in the test matrix
         for index, row in self.tests_df.iterrows():
-            # Create an empty data frame to hold results, Index=M1-Mn, Column Headers determined by measurement type
+            # Create an empty data frame to hold results, Column Headers determined by measurement type
             data_df = pd.DataFrame(data=None,
-                                   index=self.meas_setup_vheaders,
-                                   columns=PARAMETERS_BY_FUNC[FUNC_DICT[self.function_combo.currentText()]])
+                                   columns=columns)
 
             # Pull in test specific values
             start = row[self.meas_setup_hheaders[0]]
@@ -349,7 +400,7 @@ class CapFreqWidget (QWidget):
             self.lcr.dc_bias_level(self.bias_type_combo.currentText(), bias)
 
             # TODO: Generate steps
-            freq_steps = self.generate_log_steps(start, stop, self.num_data_pts)
+            freq_steps = self.generate_log_steps(int(start), int(stop), int(self.num_data_pts))
 
             for freq_step in freq_steps:
                 # Set the lcr to the correct frequency
@@ -360,29 +411,30 @@ class CapFreqWidget (QWidget):
 
                 # Read the measurement result
                 data = self.lcr.get_data()
+                data.insert(0, freq_step)
+                data = pd.Series(data, index=data_df.columns)
 
                 # Store the data do the data_df
-                data_df[index].iloc[0] = freq_step
-                data_df[index].iloc[1] = data[0]
-                data_df[index].iloc[2] = data[1]
+                data_df = data_df.append(data, ignore_index=True)
 
             # Store the measurement data in a field of the tests_df
-            self.tests_df[index]['Header'] = self.generate_header(index, row)
-            self.tests_df[index]['Data'] = data_df
+            self.header_dict[index] = self.generate_header(index, row)
+            self.data_dict[index] = data_df
+            print(data_df)
 
         self.save_data()
 
     def save_data(self):
-        ram_csv = StringIO()
         with open(self.save_file_path, 'w') as file:
-            for index, row in self.tests_df.iterrows():
-                file.write(row['Header'])
-                row['Data'].to_csv(ram_csv,
-                                   sep='\t')
+            for key in self.header_dict:
+                ram_csv = StringIO()
+                file.write(self.header_dict[key])
+                self.data_dict[key].to_csv(ram_csv,
+                                   sep='\t', index_label='idx')
                 file.write('\n')
                 file.write(ram_csv.getvalue())
-
-        ram_csv.close()
+                file.write('\n\n')
+                ram_csv.close()
 
     def generate_log_steps(self, start, stop, num_steps):
         step = 10 ** ((np.log10(stop)-np.log10(start)) / (num_steps-1))
@@ -396,12 +448,16 @@ class CapFreqWidget (QWidget):
         self.val2_live_plot.add_data([self.frequency, data[1]])
 
     def update_val_labels(self):
-        val_params = PARAMETERS_BY_FUNC[FUNC_DICT[self.function_combo.currentText()]]
+        val_params = Const.PARAMETERS_BY_FUNC[Const.FUNC_DICT[self.function_combo.currentText()]]
         self.val1_live_plot.update_plot_labels(['Frequency [Hz]', val_params[0]])
+        self.val1_frame.setTitle(val_params[0])
         self.val2_live_plot.update_plot_labels(['Frequency [Hz]', val_params[1]])
+        self.val2_frame.setTitle(val_params[1])
+
 
 
 app = QApplication(sys.argv)
+app.setStyle(QStyleFactory.create('Fusion'))
 gui = CapFreqWidget(AgilentE4980A())
 gui.show()
 

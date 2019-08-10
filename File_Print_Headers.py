@@ -1,4 +1,5 @@
-CAP_FREQ_HEADER = 'Measurement Type:\t{}\
+CAP_FREQ_HEADER = '**********************************\
+                  \nMeasurement Type:\t{}\
                   \nMeasurement Date:\t{}\
                   \nMeasurement Time:\t{}\
                   \n******Measurement Parameters******\
@@ -9,4 +10,4 @@ CAP_FREQ_HEADER = 'Measurement Type:\t{}\
                   \nDC Bias [{}]:\t{}\
                   \n***********Sample Notes***********\
                   \n{}\
-                  \n************End Header************'
+                  \n************End Header************\n\n'

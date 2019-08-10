@@ -74,6 +74,6 @@ TRIG_SOURCE_DICT = {'Internal': 'INT',
                     'External': 'EXT',
                     'Bus': 'BUS'}
 
-MEASURE_TIME_DICT = {'Short': 'SHOR',
+MEASURE_TIME_DICT = {'Long': 'LONG',
                      'Medium': 'MED',
-                     'Long': 'LONG'}
+                     'Short': 'SHOR'}

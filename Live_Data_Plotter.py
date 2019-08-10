@@ -53,7 +53,6 @@ class LivePlotCanvas(FigCanvas, TimedAnimation):
 
         # Plot figure
         self.figure = Figure(figsize=(5, 5))
-        self.figure.tight_layout()
         self.axes = self.figure.add_subplot(111)
 
         # Create the line dictionary
@@ -78,8 +77,8 @@ class LivePlotCanvas(FigCanvas, TimedAnimation):
         self.y.append(point[1])
 
     def change_axes_labels(self, axes_labels: list):
-        self.axes.set_xlabel(axes_labels[0])
-        self.axes.set_ylabel(axes_labels[1])
+        self.axes.set_xlabel(axes_labels[0], fontsize=14, weight='bold')
+        self.axes.set_ylabel(axes_labels[1], fontsize=14, weight='bold')
 
     def new_frame_seq(self):
         return iter(range(200))
@@ -93,8 +92,7 @@ class LivePlotCanvas(FigCanvas, TimedAnimation):
         try:
             TimedAnimation._step(self, *args)
         except Exception:
-            self.abc += 1
-            print(str(self.abc))
+            print('Unable to draw next frame, stopping animation.')
             TimedAnimation._stop(self)
             pass
 

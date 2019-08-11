@@ -14,7 +14,7 @@ class InstrumentSelectBox (QDialog):
 
         for instr in self.instruments:
             current_instr = self.rm.open_resource(instr)
-            self.instr_ids.append(current_instr.query("IDN?"))
+            self.instr_ids.append(current_instr.query("*IDN?"))
             current_instr.close()
 
         self.instr_combo_box = QComboBox()

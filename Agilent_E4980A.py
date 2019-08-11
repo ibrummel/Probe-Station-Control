@@ -7,14 +7,15 @@ from InstrumentSelectBox import InstrumentSelectBox
 
 
 class AgilentE4980A(QObject):
+    # This signal needs to be defined before the __init__ in order to allow it to work
+    new_data = pyqtSignal(list)
+    
     def __init__(self):
         super().__init__()
 
         self.rm = visa.ResourceManager()
         self.select_box = InstrumentSelectBox(self.rm)
         self.lcr_addr = ''
-
-        self.new_data = pyqtSignal(list)
 
         try:
             self.lcr = self.connect_lcr()
@@ -25,13 +26,16 @@ class AgilentE4980A(QObject):
     def connect_lcr(self):
         instruments = self.rm.list_resources()
 
-        for instr in self.instruments:
+        for instr in instruments:
             curr_instr = self.rm.open_resource(instr)
             # if the first 29 characters of the returned string match the LCR ID return
-            if curr_instr.query("IDN?")[0:28] == ID_STR:
+            if curr_instr.query("*IDN?")[0:28] == ID_STR:
                 return curr_instr
             else:
-                self.lcr.close()
+                try:
+                    curr_instr.close()
+                except AttributeError:
+                    print('Error closing instrument that should be open')
 
     def manual_connect_lcr(self):
         self.select_box.exec_()
@@ -105,7 +109,7 @@ class AgilentE4980A(QObject):
             return command
 
     def signal_frequency(self, freq, write_or_build='write'):
-        command = ':FREQ {}'.format(int(freq))
+        command = ':FREQ {}'.format(freq)
 
         if write_or_build.lower() == 'write':
             self.lcr.write(command)
@@ -113,8 +117,8 @@ class AgilentE4980A(QObject):
             return command
 
     def get_signal_frequency(self):
-        freq = self.lcr.write(':FREQ?')
-        return int(freq)
+        freq = self.lcr.query(':FREQ?')
+        return float(freq)
 
     def signal_level(self, signal_type: str, level, write_or_build='write'):
         if signal_type.lower() == 'voltage':

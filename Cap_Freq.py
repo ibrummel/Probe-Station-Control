@@ -155,11 +155,11 @@ class CapFreqWidget (QWidget):
         self.update_live_readout()
 
     def init_layout(self):
-        config_width = 662
+        config_width = 325
 
         # Set widget geometry
         self.sizePolicy().setHeightForWidth(True)
-        self.setMinimumSize(1920, 1080)
+        self.setMinimumSize(1600, 900)
 
         # Initialize the hbox to hold the save file info
         save_file_hbox = QHBoxLayout()
@@ -185,7 +185,7 @@ class CapFreqWidget (QWidget):
 
         # Set the measuring param layout to the measuring param group box
         self.measuring_param_box.setLayout(measuring_param_vbox)
-        self.measuring_param_box.setFixedSize(config_width, 445)
+        self.measuring_param_box.setFixedSize(config_width, 288)
 
         ###
         # Initialize the measurement setup form for number of measurements

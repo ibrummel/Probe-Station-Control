@@ -324,11 +324,10 @@ class CapFreqWidget (QWidget):
 
     def generate_header(self, index, row):
         # Gather format strings for header
-        meas_type = self.function_combo.currentText()
         meas_number = index
         now = datetime.now()
-        date = str(now).split(' ')[0]
-        time = str(now.strftime('%H:%M:%S'))
+        date_now = str(now).split(' ')[0]
+        time_now = str(now.strftime('%H:%M:%S'))
 
         start = row[self.meas_setup_hheaders[0]]
         stop = row[self.meas_setup_hheaders[1]]
@@ -347,14 +346,15 @@ class CapFreqWidget (QWidget):
 
         notes = self.notes.text()
 
-        header = CAP_FREQ_HEADER.format(meas_type,
-                                        date,
-                                        time,
+        header = CAP_FREQ_HEADER.format(self.lcr_function,
+                                        date_now,
+                                        time_now,
                                         meas_number,
                                         start,
                                         stop,
                                         osc_type, osc,
                                         bias_type, bias,
+                                        self.step_delay,
                                         'Notes: {}'.format(notes))
 
         return header

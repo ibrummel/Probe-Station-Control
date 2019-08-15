@@ -8,6 +8,7 @@ CAP_FREQ_HEADER = '**********************************\
                   \nStop Frequency [Hz]:\t{}\
                   \nOscilator [{}]:\t{}\
                   \nDC Bias [{}]:\t{}\
+                  \nStep Delay (ms):\t{}\
                   \n***********Sample Notes***********\
                   \n{}\
                   \n************End Header************\n\n'

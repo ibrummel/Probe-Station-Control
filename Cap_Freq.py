@@ -433,13 +433,6 @@ class CapFreqWidget (QWidget):
         # Generate the matrix of tests to run
         self.generate_test_matrix()
 
-        # Check if any of the DC bias values are non-zero, and turn the bias function on or off accordingly
-        for bias in self.tests_df[self.meas_setup_hheaders[2]]:
-            if float(bias) != 0:
-                self.lcr.dc_bias_state('on')
-                break
-            self.lcr.dc_bias_state('off')
-
         # Set up the data column headers
         columns = Const.PARAMETERS_BY_FUNC[Const.FUNC_DICT[self.function_combo.currentText()]]
         columns.insert(0, 'Frequency [Hz]')
@@ -459,7 +452,6 @@ class CapFreqWidget (QWidget):
             self.lcr.signal_level(self.signal_type_combo.currentText(), osc)
             self.lcr.dc_bias_level(self.bias_type_combo.currentText(), bias)
 
-            # TODO: Generate steps
             freq_steps = generate_log_steps(int(start), int(stop), int(self.num_data_pts))
 
             for freq_step in freq_steps:
@@ -484,15 +476,20 @@ class CapFreqWidget (QWidget):
             self.header_dict[index] = self.generate_header(index, row)
             self.data_dict[index] = data_df
 
+        print('Saving Data')
         self.save_data()
 
         # Enable the user to change controls
+        print('Re-enabling controls')
         self.enable_controls(True)
         # Set live vals to update periodically
+        print('Enabling live value updates')
         self.enable_live_vals(True)
         # Disable live plotting of values
+        print('Disabling live plots')
         self.enable_live_plots(False)
 
+        print('Returning to default levels')
         self.return_to_defaults()
 
     def return_to_defaults(self):

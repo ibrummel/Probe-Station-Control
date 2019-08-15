@@ -80,8 +80,9 @@ class LivePlotCanvas(FigCanvas, TimedAnimation):
         self.y.append(point[1])
 
     def clear_data(self):
-        self.x = self.x[-1]
-        self.y = self.y[-1]
+        self.x.clear()
+        self.y.clear()
+
 
     def change_axes_labels(self, axes_labels: list):
         self.axes.set_xlabel(axes_labels[0], fontsize=14, weight='bold')

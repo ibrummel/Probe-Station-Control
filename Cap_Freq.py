@@ -18,6 +18,7 @@ from Agilent_E4980A import AgilentE4980A
 import Agilent_E4980A_Constants as Const
 import FormatLib
 from File_Print_Headers import *
+from Processing_Functions import generate_log_steps
 
 
 class CapFreqWidget (QWidget):
@@ -98,7 +99,7 @@ class CapFreqWidget (QWidget):
         self.bias_type_combo.currentTextChanged.connect(self.change_bias_type)
         self.save_file_ln.editingFinished.connect(self.check_entered_filepath)
         self.save_file_btn.clicked.connect(self.open_save_dialog)
-        self.save_file_btn.clicked.connect(self.print_size)
+        # self.save_file_btn.clicked.connect(self.print_size) DEBUG FOR SETTING SIZES
         self.num_measurements_ln.editingFinished.connect(self.change_num_measurements)
         self.start_meas_btn.clicked.connect(self.measure)
 
@@ -273,7 +274,6 @@ class CapFreqWidget (QWidget):
                                                         QMessageBox.OK, QMessageBox.Ok)
                 self.open_save_dialog()
         self.save_file_ln.setText(self.save_file_path)
-        self.print_size()
 
     def check_entered_filepath(self):
         self.save_file_path = self.save_file_ln.text()
@@ -349,8 +349,6 @@ class CapFreqWidget (QWidget):
             for icol in range(0, self.meas_setup_table.columnCount()):
                 self.tests_df.iloc[irow, icol] = self.meas_setup_table.item(irow, icol).text()
 
-        print(self.tests_df)
-
     def enable_controls(self, enable: bool):
         for widget in self.config_controls_vbox.findChildren(QWidget):
             widget.setEnabled(enable)
@@ -400,7 +398,7 @@ class CapFreqWidget (QWidget):
             self.lcr.dc_bias_level(self.bias_type_combo.currentText(), bias)
 
             # TODO: Generate steps
-            freq_steps = self.generate_log_steps(int(start), int(stop), int(self.num_data_pts))
+            freq_steps = generate_log_steps(int(start), int(stop), int(self.num_data_pts))
 
             for freq_step in freq_steps:
                 # Set the lcr to the correct frequency
@@ -420,9 +418,15 @@ class CapFreqWidget (QWidget):
             # Store the measurement data in a field of the tests_df
             self.header_dict[index] = self.generate_header(index, row)
             self.data_dict[index] = data_df
-            print(data_df)
 
+        self.return_to_defaults()
         self.save_data()
+
+    def return_to_defaults(self):
+        self.lcr.dc_bias_level('voltage', 0)
+        self.lcr.dc_bias_state('off')
+        self.lcr.signal_level('voltage', 0.05)
+        self.lcr.signal_frequency(1000)
 
     def save_data(self):
         with open(self.save_file_path, 'w') as file:
@@ -430,18 +434,10 @@ class CapFreqWidget (QWidget):
                 ram_csv = StringIO()
                 file.write(self.header_dict[key])
                 self.data_dict[key].to_csv(ram_csv,
-                                   sep='\t', index_label='idx')
-                file.write('\n')
+                                           sep='\t', index_label='idx')
                 file.write(ram_csv.getvalue())
-                file.write('\n\n')
+                file.write('\n*************End Data*************\n\n')
                 ram_csv.close()
-
-    def generate_log_steps(self, start, stop, num_steps):
-        step = 10 ** ((np.log10(stop)-np.log10(start)) / (num_steps-1))
-        freq_steps = [start * (step ** i) for i in range(0, num_steps-1)]
-        freq_steps.append(stop)
-
-        return freq_steps
 
     def plot_new_points(self, data: list):
         self.val1_live_plot.add_data([self.frequency, data[0]])
@@ -453,7 +449,6 @@ class CapFreqWidget (QWidget):
         self.val1_frame.setTitle(val_params[0])
         self.val2_live_plot.update_plot_labels(['Frequency [Hz]', val_params[1]])
         self.val2_frame.setTitle(val_params[1])
-
 
 
 app = QApplication(sys.argv)

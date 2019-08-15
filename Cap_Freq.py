@@ -265,7 +265,7 @@ class CapFreqWidget (QWidget):
         file_name = QFileDialog.getSaveFileName(self,
                                                 'Select a file to save data...',
                                                 self.save_file_path,
-                                                "All Types (*.*)",
+                                                "Dat Files (*.dat);;xy Files (*.xy);;All Types (*.*)",
                                                 options=QFileDialog.DontConfirmOverwrite)
         self.save_file_path = file_name[0]
         if not os.path.exists(os.path.dirname(os.path.abspath(self.save_file_path))):

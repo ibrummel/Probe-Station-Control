@@ -314,8 +314,13 @@ class CapFreqWidget (QWidget):
                 widget = self.meas_setup_table.item(irow, icol)
                 # If the cell doesn't already have a QTableWidgetItem
                 if widget is None:
+                    # Get the value of the cell above
+                    value = self.meas_setup_table.item(irow-1, icol).text()
                     # Create a new QTableWidgetItem in the cell
-                    self.meas_setup_table.setItem(irow, icol, QTableWidgetItem())
+                    new_widget = QTableWidgetItem()
+                    new_widget.setText(value)
+                    # Put the new widget in the table
+                    self.meas_setup_table.setItem(irow, icol, new_widget)
 
     def generate_header(self, index, row):
         # Gather format strings for header

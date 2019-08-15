@@ -360,16 +360,28 @@ class CapFreqWidget (QWidget):
     def enable_live_vals(self, enable: bool):
         if enable:
             self.live_readout_timer.start(500)
-            self.lcr.new_data.connect(self.update_live_readout)
+            try:
+                self.lcr.new_data.connect(self.update_live_readout)
+            except TypeError:
+                pass
         elif not enable:
             self.live_readout_timer.stop()
-            self.lcr.new_data.disconnect(self.update_live_readout)
+            try:
+                self.lcr.new_data.disconnect(self.update_live_readout)
+            except TypeError:
+                pass
 
     def enable_live_plots(self, enable: bool):
         if enable:
-            self.lcr.new_data.connect(self.plot_new_points)
+            try:
+                self.lcr.new_data.connect(self.plot_new_points)
+            except TypeError:
+                pass
         elif not enable:
-            self.lcr.new_data.disconnect(self.plot_new_points)
+            try:
+                self.lcr.new_data.disconnect(self.plot_new_points)
+            except TypeError:
+                pass
 
     def measure(self):
         if os.path.isfile(self.save_file_path):

@@ -40,6 +40,9 @@ class LivePlotWidget(QFrame):
     def add_data(self, point: list):
         self.live_plot.add_data(point)
 
+    def clear_data(self):
+        self.live_plot.clear_data()
+
 
 class LivePlotCanvas(FigCanvas, TimedAnimation):
     def __init__(self, axes_labels: list, lead: bool, lead_length: int, head: bool, line_color: str,
@@ -75,6 +78,10 @@ class LivePlotCanvas(FigCanvas, TimedAnimation):
     def add_data(self, point: list):
         self.x.append(point[0])
         self.y.append(point[1])
+
+    def clear_data(self):
+        self.x = self.x[-1]
+        self.y = self.y[-1]
 
     def change_axes_labels(self, axes_labels: list):
         self.axes.set_xlabel(axes_labels[0], fontsize=14, weight='bold')

@@ -8,7 +8,7 @@ from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavToolBa
 
 
 class LivePlotWidget(QFrame):
-    def __init__(self, axes_labels: list, lead=True, lead_length=0.1, head=True, line_color='blue', head_color='red', draw_interval=200):
+    def __init__(self, axes_labels: list, lead=True, lead_length=3, head=True, line_color='blue', head_color='red', draw_interval=200):
         super().__init__()
 
         # Create child widgets
@@ -42,10 +42,10 @@ class LivePlotWidget(QFrame):
 
 
 class LivePlotCanvas(FigCanvas, TimedAnimation):
-    def __init__(self, axes_labels: list, lead=True, lead_length=0.1, head=True, line_color='blue',
-                 head_color='red', draw_interval=200):
+    def __init__(self, axes_labels: list, lead: bool, lead_length: int, head: bool, line_color: str,
+                 head_color: str, draw_interval: str):
 
-        self.lead_length = lead_length
+        self.lead_length = int(lead_length)
 
         # Plot Data
         self.x = [0]
@@ -86,23 +86,23 @@ class LivePlotCanvas(FigCanvas, TimedAnimation):
     def _init_draw(self):
         for key, line in self.lines.items():
             line.set_data([], [])
-
-    def _step(self, *args):
-        # Extends the _step() method for the TimedAnimation class.
-        try:
-            TimedAnimation._step(self, *args)
-        except Exception:
-            print('Unable to draw next frame, stopping animation.')
-            TimedAnimation._stop(self)
-            pass
+    #
+    # def _step(self, *args):
+    #     # Extends the _step() method for the TimedAnimation class.
+    #     try:
+    #         TimedAnimation._step(self, *args)
+    #     except Exception:
+    #         print('Unable to draw next frame, stopping animation.')
+    #         TimedAnimation._stop(self)
+    #         pass
 
     def _draw_frame(self, framedata):
         self.lines['line'].set_data(self.x, self.y)
 
         try:
             # If there is a lead line, plot lead_length of the data as red
-            self.lines['lead'].set_data(self.x[-int(self.axes.get_xlim()*self.lead_length):-1],
-                                        self.y[-int(self.axes.get_xlim()*self.lead_length):-1])
+            self.lines['lead'].set_data(self.x[-self.lead_length:],
+                                        self.y[-self.lead_length:])
         except KeyError:
             pass
 

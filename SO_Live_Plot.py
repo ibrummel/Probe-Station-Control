@@ -10,6 +10,7 @@ from matplotlib.lines import Line2D
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 import time
 import threading
+from Live_Data_Plotter import LivePlotWidget
 
 matplotlib.use("Qt5Agg")
 
@@ -47,7 +48,7 @@ class CustomMainWindow(QtWidgets.QMainWindow):
         self.LAYOUT_A.addWidget(self.zoomBtn, *(0, 0))
 
         # Place the matplotlib figure
-        self.myFig = CustomFigCanvas()
+        self.myFig = LivePlotWidget(['x', 'y'])
         self.LAYOUT_A.addWidget(self.myFig, *(0, 1))
 
         # Add the callbackfunc to ..
@@ -63,7 +64,7 @@ class CustomMainWindow(QtWidgets.QMainWindow):
 
     def addData_callbackFunc(self, value):
         # print("Add data: " + str(value))
-        self.myFig.addData(value)
+        self.myFig.add_data(value)
 
 
 class CustomFigCanvas(FigureCanvas, TimedAnimation):
@@ -150,7 +151,7 @@ class CustomFigCanvas(FigureCanvas, TimedAnimation):
 # Believe me, if you don't do this right, things
 # go very very wrong..
 class Communicate(QtCore.QObject):
-    data_signal = QtCore.pyqtSignal(float)
+    data_signal = QtCore.pyqtSignal(list)
 
 
 ''' End Class '''
@@ -170,7 +171,7 @@ def dataSendLoop(addData_callbackFunc):
         if (i > 499):
             i = 0
         time.sleep(0.1)
-        mySrc.data_signal.emit(y[i])  # <- Here you emit a signal!
+        mySrc.data_signal.emit([n[i], y[i]])  # <- Here you emit a signal!
         i += 1
     ###
 

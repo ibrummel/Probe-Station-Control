@@ -164,6 +164,9 @@ class AgilentE4980A(QObject):
         self.new_data.emit(data)
         return data
 
+    def get_current_function(self):
+        # FIXME: Add this then use it to set the combo box at start
+        pass
 
     def get_function_parameters(self):
         func_params = PARAMETERS_BY_FUNC[self.lcr.query(':FUNC:IMP?').rstrip()]

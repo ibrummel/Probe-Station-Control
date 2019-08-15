@@ -27,15 +27,24 @@ class CapFreqWidget (QWidget):
 
         # Define class variables and objects
         self.lcr = lcr
-        self.num_data_pts = 50
+        self.lcr_function = 'self.lcr.get_current_function()'
+        self.measuring_time = 'long'
+        self.range = 'auto'
         self.measuring_avg = 1
-        self.num_measurements = 1
+        self.signal_type = 'voltage'
+        self.bias_type = 'voltage'
+        self.num_data_pts = 50
         self.step_delay = 0.0
-        self.frequency = self.lcr.get_signal_frequency()
+
+        self.num_measurements = 1
         self.tests_df = pd.DataFrame()
         self.data_dict = {}
         self.header_dict = {}
         self.save_file_path = os.path.join(os.getenv('USERPROFILE'), 'Desktop')
+
+        # Tiny bit of initial instrument setup
+        self.lcr.dc_bias_state('on')
+        self.return_to_defaults()
 
         # Create a thread to hold the instrument class as a worker
         self.instr_thread = QThread()
@@ -97,8 +106,8 @@ class CapFreqWidget (QWidget):
         self.range_combo.currentTextChanged.connect(self.change_impedance_range)
         self.signal_type_combo.currentTextChanged.connect(self.change_signal_type)
         self.bias_type_combo.currentTextChanged.connect(self.change_bias_type)
-        self.save_file_ln.editingFinished.connect(self.check_entered_filepath)
-        self.save_file_btn.clicked.connect(self.open_save_dialog)
+        self.save_file_ln.editingFinished.connect(self.set_save_file_path)
+        self.save_file_btn.clicked.connect(self.set_save_file_path_by_dialog)
         self.save_file_btn.clicked.connect(self.print_size)   # DEBUG FOR SETTING SIZES
         self.num_measurements_ln.editingFinished.connect(self.change_num_measurements)
         self.start_meas_btn.clicked.connect(self.measure)
@@ -238,11 +247,12 @@ class CapFreqWidget (QWidget):
         print('Measurement setup:', self.meas_setup_box.size(), sep=' ')
 
     def change_function(self):
-        self.lcr.function(self.function_combo.currentText())
+        self.lcr_function = self.function_combo.currentText()
         self.update_val_labels()
 
     def change_meas_aperture(self):
-        self.lcr.measurement_aperture(self.measuring_time_combo.currentText(), self.measuring_avg_ln.text())
+        self.measuring_time = self.measuring_time_combo.currentText()
+        self.measuring_avg = int(self.measuring_avg_ln.text())
 
     def change_num_pts(self):
         self.num_data_pts = int(self.num_data_pts_ln.text())
@@ -251,17 +261,15 @@ class CapFreqWidget (QWidget):
         self.step_delay = float(self.step_delay_ln.text())
 
     def change_impedance_range(self):
-        self.lcr.impedance_range(self.range_combo.currentText())
+        self.range = self.range_combo.currentText()
 
     def change_signal_type(self):
-        signal_type = self.signal_type_combo.currentText()
-        self.lcr.signal_level(signal_type, self.meas_setup_table.item(0, 2).text())
+        self.signal_type = self.signal_type_combo.currentText()
 
     def change_bias_type(self):
-        bias_type = self.bias_type_combo.currentText()
-        self.lcr.dc_bias_level(bias_type, self.meas_setup_table.item(0, 3).text())
+        self.bias_type = self.bias_type_combo.currentText()
 
-    def open_save_dialog(self):
+    def set_save_file_path_by_dialog(self):
         file_name = QFileDialog.getSaveFileName(self,
                                                 'Select a file to save data...',
                                                 self.save_file_path,
@@ -276,10 +284,10 @@ class CapFreqWidget (QWidget):
                                                         'Permission to create the specified folder was denied. \
                                                         Please pick another location to save your data',
                                                         QMessageBox.OK, QMessageBox.Ok)
-                self.open_save_dialog()
+                self.set_save_file_path_by_dialog()
         self.save_file_ln.setText(self.save_file_path)
 
-    def check_entered_filepath(self):
+    def set_save_file_path_by_text(self):
         self.save_file_path = self.save_file_ln.text()
 
     def change_num_measurements(self):
@@ -383,6 +391,13 @@ class CapFreqWidget (QWidget):
             except TypeError:
                 pass
 
+    def setup_lcr(self):
+        self.lcr.function(self.lcr_function)
+        self.lcr.impedance_range(self.range)
+        self.lcr.measurement_aperture(self.measuring_time, self.measuring_avg)
+        self.lcr.signal_level(self.signal_type, self.meas_setup_table.item(0, 2).text())
+        self.lcr.dc_bias_level(self.bias_type, self.meas_setup_table.item(0, 3).text())
+
     def measure(self):
         if os.path.isfile(self.save_file_path):
             overwrite = QMessageBox.warning(self, 'File already exists',
@@ -390,13 +405,16 @@ class CapFreqWidget (QWidget):
                                             QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel,
                                             QMessageBox.No)
             if overwrite == QMessageBox.No:
-                self.open_save_dialog()
+                self.set_save_file_path_by_dialog()
                 self.measure()
             elif overwrite == QMessageBox.Cancel:
                 cancel = QMessageBox.information(self, 'Measurement canceled',
                                                  'Measurement cancelled by user.',
                                                  QMessageBox.Ok, QMessageBox.Ok)
                 return
+
+        # Write configured parameters to lcr
+        self.setup_lcr()
 
         # Keep the user from changing values in the controls
         self.enable_controls(False)
@@ -461,7 +479,6 @@ class CapFreqWidget (QWidget):
             self.header_dict[index] = self.generate_header(index, row)
             self.data_dict[index] = data_df
 
-        self.return_to_defaults()
         self.save_data()
 
         # Enable the user to change controls
@@ -470,6 +487,8 @@ class CapFreqWidget (QWidget):
         self.enable_live_vals(True)
         # Disable live plotting of values
         self.enable_live_plots(False)
+
+        self.return_to_defaults()
 
     def return_to_defaults(self):
         self.lcr.dc_bias_level('voltage', 0)
@@ -493,7 +512,7 @@ class CapFreqWidget (QWidget):
         self.val2_live_plot.add_data([self.lcr.get_signal_frequency(), data[1]])
 
     def update_val_labels(self):
-        val_params = Const.PARAMETERS_BY_FUNC[Const.FUNC_DICT[self.function_combo.currentText()]]
+        val_params = Const.PARAMETERS_BY_FUNC[Const.FUNC_DICT[self.lcr_function]]
         self.val1_live_plot.update_plot_labels(['Frequency [Hz]', val_params[0]])
         self.val1_frame.setTitle(val_params[0])
         self.val2_live_plot.update_plot_labels(['Frequency [Hz]', val_params[1]])

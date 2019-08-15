@@ -1,16 +1,16 @@
 import time
 
-from PyQt5.QtGui import QIcon, QFont
+from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import (QWidget, QComboBox, QLineEdit, QLabel, QFormLayout, QVBoxLayout,
                              QGroupBox, QTableWidget, QTableWidgetItem, QHBoxLayout, QMessageBox,
-                             QToolButton, QApplication, QFileDialog, QFrame, QStyleFactory)
+                             QToolButton, QApplication, QFileDialog, QFrame, QStyleFactory, QCheckBox)
 from PyQt5.QtCore import QTimer, QThread, Qt, QSize
 import sys
 from pathlib import Path
 import os
 from io import StringIO
+from time import sleep
 import pandas as pd
-import numpy as np
 from datetime import datetime
 from Live_Data_Plotter import LivePlotWidget
 from Agilent_E4980A import AgilentE4980A
@@ -30,6 +30,7 @@ class CapFreqWidget (QWidget):
         self.num_data_pts = 50
         self.measuring_avg = 1
         self.num_measurements = 1
+        self.step_delay = 0.0
         self.frequency = self.lcr.get_signal_frequency()
         self.tests_df = pd.DataFrame()
         self.data_dict = {}
@@ -49,6 +50,7 @@ class CapFreqWidget (QWidget):
         self.signal_type_combo = QComboBox()
         self.bias_type_combo = QComboBox()
         self.num_data_pts_ln = QLineEdit(str(self.num_data_pts))
+        self.step_delay_ln = QLineEdit()
         self.notes = QLineEdit()
         self.save_file_ln = QLineEdit()
         self.save_file_btn = QToolButton()
@@ -86,14 +88,12 @@ class CapFreqWidget (QWidget):
         self.init_layout()
 
     def init_connections(self):
-        # Instrument
-        self.lcr.new_data.connect(self.plot_new_points)
-
         # Control edit connections
         self.function_combo.currentTextChanged.connect(self.change_function)
         self.measuring_time_combo.currentTextChanged.connect(self.change_meas_aperture)
         self.measuring_avg_ln.editingFinished.connect(self.change_meas_aperture)
         self.num_data_pts_ln.editingFinished.connect(self.change_num_pts)
+        self.step_delay_ln.editingFinished.connect(self.change_step_delay)
         self.range_combo.currentTextChanged.connect(self.change_impedance_range)
         self.signal_type_combo.currentTextChanged.connect(self.change_signal_type)
         self.bias_type_combo.currentTextChanged.connect(self.change_bias_type)
@@ -173,6 +173,7 @@ class CapFreqWidget (QWidget):
         measuring_param_form.addRow('Measuring Time:', self.measuring_time_combo)
         measuring_param_form.addRow('Data Averaging:', self.measuring_avg_ln)
         measuring_param_form.addRow('# of Data Points:', self.num_data_pts_ln)
+        measuring_param_form.addRow('Delay Between Steps:', self.step_delay_ln)
         measuring_param_form.addRow('Impedance Range:', self.range_combo)
         measuring_param_form.addRow('Signal Type:', self.signal_type_combo)
         measuring_param_form.addRow('DC Bias Type:', self.bias_type_combo)
@@ -245,6 +246,9 @@ class CapFreqWidget (QWidget):
 
     def change_num_pts(self):
         self.num_data_pts = int(self.num_data_pts_ln.text())
+
+    def change_step_delay(self):
+        self.step_delay = float(self.step_delay_ln.text())
 
     def change_impedance_range(self):
         self.lcr.impedance_range(self.range_combo.currentText())
@@ -350,8 +354,22 @@ class CapFreqWidget (QWidget):
                 self.tests_df.iloc[irow, icol] = self.meas_setup_table.item(irow, icol).text()
 
     def enable_controls(self, enable: bool):
-        for widget in self.config_controls_vbox.findChildren(QWidget):
-            widget.setEnabled(enable)
+        self.meas_setup_box.setEnabled(enable)
+        self.measuring_param_box.setEnabled(enable)
+
+    def enable_live_vals(self, enable: bool):
+        if enable:
+            self.live_readout_timer.start(500)
+            self.lcr.new_data.connect(self.update_live_readout)
+        elif not enable:
+            self.live_readout_timer.stop()
+            self.lcr.new_data.disconnect(self.update_live_readout)
+
+    def enable_live_plots(self, enable: bool):
+        if enable:
+            self.lcr.new_data.connect(self.plot_new_points)
+        elif not enable:
+            self.lcr.new_data.disconnect(self.plot_new_points)
 
     def measure(self):
         if os.path.isfile(self.save_file_path):
@@ -368,7 +386,16 @@ class CapFreqWidget (QWidget):
                                                  QMessageBox.Ok, QMessageBox.Ok)
                 return
 
+        # Keep the user from changing values in the controls
         self.enable_controls(False)
+        # Set live vals to update to last read value only
+        self.enable_live_vals(False)
+        # Enable live plotting of values, clear previous data
+        self.enable_live_plots(True)
+        self.val1_live_plot.clear_data()
+        self.val2_live_plot.clear_data()
+
+        # Generate the matrix of tests to run
         self.generate_test_matrix()
 
         # Check if any of the DC bias values are non-zero, and turn the bias function on or off accordingly
@@ -404,12 +431,15 @@ class CapFreqWidget (QWidget):
                 # Set the lcr to the correct frequency
                 self.lcr.signal_frequency(freq_step)
 
+                # Wait for measurement to stabilize (50ms to allow signal to stabilize + user set delay)
+                sleep(self.step_delay + 0.05)
+
                 # Trigger the measurement to start
                 self.lcr.trigger_init()
 
                 # Read the measurement result
                 data = self.lcr.get_data()
-                data.insert(0, freq_step)
+                data.insert(0, self.lcr.get_signal_frequency())
                 data = pd.Series(data, index=data_df.columns)
 
                 # Store the data do the data_df
@@ -421,6 +451,13 @@ class CapFreqWidget (QWidget):
 
         self.return_to_defaults()
         self.save_data()
+
+        # Enable the user to change controls
+        self.enable_controls(True)
+        # Set live vals to update periodically
+        self.enable_live_vals(True)
+        # Disable live plotting of values
+        self.enable_live_plots(False)
 
     def return_to_defaults(self):
         self.lcr.dc_bias_level('voltage', 0)
@@ -440,8 +477,8 @@ class CapFreqWidget (QWidget):
                 ram_csv.close()
 
     def plot_new_points(self, data: list):
-        self.val1_live_plot.add_data([self.frequency, data[0]])
-        self.val2_live_plot.add_data([self.frequency, data[1]])
+        self.val1_live_plot.add_data([self.lcr.get_signal_frequency(), data[0]])
+        self.val2_live_plot.add_data([self.lcr.get_signal_frequency(), data[1]])
 
     def update_val_labels(self):
         val_params = Const.PARAMETERS_BY_FUNC[Const.FUNC_DICT[self.function_combo.currentText()]]

@@ -159,6 +159,8 @@ class AgilentE4980A(QObject):
         data = self.lcr.query(':FETC?')
         data = data.rstrip().split(',')
 
+        data = [float(x) for x in data]
+
         self.new_data.emit(data)
         return data
 

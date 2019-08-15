@@ -290,8 +290,8 @@ class CapFreqWidget (QWidget):
 
     def update_live_readout(self):
         vals = self.lcr.get_data()
-        self.val1_lbl.setText(vals[0])
-        self.val2_lbl.setText(vals[1])
+        self.val1_lbl.setText(str(vals[0]))
+        self.val2_lbl.setText(str(vals[1]))
 
     def update_table_hheaders(self):
         self.meas_setup_table.setHorizontalHeaderLabels(self.meas_setup_hheaders)

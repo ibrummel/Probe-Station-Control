@@ -99,7 +99,7 @@ class CapFreqWidget (QWidget):
         self.bias_type_combo.currentTextChanged.connect(self.change_bias_type)
         self.save_file_ln.editingFinished.connect(self.check_entered_filepath)
         self.save_file_btn.clicked.connect(self.open_save_dialog)
-        # self.save_file_btn.clicked.connect(self.print_size) DEBUG FOR SETTING SIZES
+        self.save_file_btn.clicked.connect(self.print_size)   # DEBUG FOR SETTING SIZES
         self.num_measurements_ln.editingFinished.connect(self.change_num_measurements)
         self.start_meas_btn.clicked.connect(self.measure)
 
@@ -159,8 +159,8 @@ class CapFreqWidget (QWidget):
         config_width = 325
 
         # Set widget geometry
-        self.sizePolicy().setHeightForWidth(True)
-        self.setMinimumSize(1600, 900)
+        # self.sizePolicy().setHeightForWidth(True)
+        # self.setMinimumSize(1600, 900)
 
         # Initialize the hbox to hold the save file info
         save_file_hbox = QHBoxLayout()
@@ -187,7 +187,7 @@ class CapFreqWidget (QWidget):
 
         # Set the measuring param layout to the measuring param group box
         self.measuring_param_box.setLayout(measuring_param_vbox)
-        self.measuring_param_box.setFixedSize(config_width, 288)
+        self.measuring_param_box.setFixedWidth(config_width)  #, 288)
 
         ###
         # Initialize the measurement setup form for number of measurements

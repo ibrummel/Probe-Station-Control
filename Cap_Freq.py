@@ -4,7 +4,7 @@ from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import (QWidget, QComboBox, QLineEdit, QLabel, QFormLayout, QVBoxLayout,
                              QGroupBox, QTableWidget, QTableWidgetItem, QHBoxLayout, QMessageBox,
                              QToolButton, QApplication, QFileDialog, QFrame, QStyleFactory, QCheckBox)
-from PyQt5.QtCore import QTimer, QThread, Qt, QSize
+from PyQt5.QtCore import QTimer, QThread, Qt, QSize, pyqtSignal
 import sys
 from pathlib import Path
 import os
@@ -22,6 +22,9 @@ from Processing_Functions import generate_log_steps
 
 
 class CapFreqWidget (QWidget):
+    # This signal needs to be defined before the __init__ in order to allow it to work
+    data_read = pyqtSignal()
+    
     def __init__(self, lcr: AgilentE4980A):
         super().__init__()
 
@@ -114,6 +117,7 @@ class CapFreqWidget (QWidget):
 
         # Timers
         self.live_readout_timer.timeout.connect(self.update_live_readout)
+        self.data_read.connect(self.update_live_readout)
 
     def init_control_setup(self):
         # Set up initial table headers and size
@@ -297,7 +301,9 @@ class CapFreqWidget (QWidget):
         self.add_table_items()
 
     def update_live_readout(self):
+        print('Getting data from lcr for live vals')
         vals = self.lcr.get_data()
+        print('Data retrieved from lcr')
         self.val1_lbl.setText(str(vals[0]))
         self.val2_lbl.setText(str(vals[1]))
 
@@ -374,16 +380,8 @@ class CapFreqWidget (QWidget):
     def enable_live_vals(self, enable: bool):
         if enable:
             self.live_readout_timer.start(500)
-            try:
-                self.lcr.new_data.connect(self.update_live_readout)
-            except TypeError:
-                pass
         elif not enable:
             self.live_readout_timer.stop()
-            try:
-                self.lcr.new_data.disconnect(self.update_live_readout)
-            except TypeError:
-                pass
 
     def enable_live_plots(self, enable: bool):
         if enable:
@@ -467,6 +465,7 @@ class CapFreqWidget (QWidget):
 
                 # Read the measurement result
                 data = self.lcr.get_data()
+                self.data_read.emit()
                 data.insert(0, self.lcr.get_signal_frequency())
                 data = pd.Series(data, index=data_df.columns)
 
@@ -495,9 +494,11 @@ class CapFreqWidget (QWidget):
 
     def return_to_defaults(self):
         self.lcr.dc_bias_level('voltage', 0)
-        self.lcr.dc_bias_state('off')
+        print('DC bias set to 0')
         self.lcr.signal_level('voltage', 0.05)
+        print('Signal level (Oscillator) set to 50mV')
         self.lcr.signal_frequency(1000)
+        print('Signal frequency set to 1kHz')
 
     def save_data(self):
         with open(self.save_file_path, 'w') as file:

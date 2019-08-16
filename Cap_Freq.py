@@ -106,7 +106,7 @@ class CapFreqWidget (QWidget):
         self.range_combo.currentTextChanged.connect(self.change_impedance_range)
         self.signal_type_combo.currentTextChanged.connect(self.change_signal_type)
         self.bias_type_combo.currentTextChanged.connect(self.change_bias_type)
-        self.save_file_ln.editingFinished.connect(self.set_save_file_path)
+        self.save_file_ln.editingFinished.connect(self.set_save_file_path_by_text)
         self.save_file_btn.clicked.connect(self.set_save_file_path_by_dialog)
         self.save_file_btn.clicked.connect(self.print_size)   # DEBUG FOR SETTING SIZES
         self.num_measurements_ln.editingFinished.connect(self.change_num_measurements)

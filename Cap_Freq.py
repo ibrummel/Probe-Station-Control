@@ -1,9 +1,7 @@
-import time
-
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import (QWidget, QComboBox, QLineEdit, QLabel, QFormLayout, QVBoxLayout,
                              QGroupBox, QTableWidget, QTableWidgetItem, QHBoxLayout, QMessageBox,
-                             QToolButton, QApplication, QFileDialog, QFrame, QStyleFactory, QCheckBox)
+                             QToolButton, QApplication, QFileDialog, QFrame, QStyleFactory)
 from PyQt5.QtCore import QTimer, QThread, Qt, QSize, pyqtSignal
 import sys
 from pathlib import Path
@@ -200,7 +198,7 @@ class CapFreqWidget (QWidget):
 
         # Set the measuring param layout to the measuring param group box
         self.measuring_param_box.setLayout(measuring_param_vbox)
-        self.measuring_param_box.setFixedWidth(config_width)  #, 288)
+        self.measuring_param_box.setFixedWidth(config_width)
 
         ###
         # Initialize the measurement setup form for number of measurements
@@ -260,21 +258,21 @@ class CapFreqWidget (QWidget):
             self.measuring_avg = int(self.measuring_avg_ln.text())
         except ValueError:
             self.measuring_avg = 1
-            self.measuring_avg_ln.setText(self.measuring_avg)
+            self.measuring_avg_ln.setText(str(self.measuring_avg))
 
     def change_num_pts(self):
         try:
             self.num_data_pts = int(self.num_data_pts_ln.text())
         except ValueError:
             self.num_data_pts = 50
-            self.num_data_pts_ln.setText(self.num_data_pts)
+            self.num_data_pts_ln.setText(str(self.num_data_pts))
 
     def change_step_delay(self):
         try:
             self.step_delay = float(self.step_delay_ln.text())
         except ValueError:
             self.step_delay = 0.0
-            self.step_delay_ln.setText(self.step_delay)
+            self.step_delay_ln.setText(str(self.step_delay))
 
     def change_impedance_range(self):
         self.range = self.range_combo.currentText()
@@ -300,7 +298,9 @@ class CapFreqWidget (QWidget):
                                                         'Permission to create the specified folder was denied. \
                                                         Please pick another location to save your data',
                                                         QMessageBox.OK, QMessageBox.Ok)
-                self.set_save_file_path_by_dialog()
+                if permission_denied == QMessageBox.Ok:
+                    self.set_save_file_path_by_dialog()
+
         self.save_file_ln.setText(self.save_file_path)
 
     def set_save_file_path_by_text(self):
@@ -361,12 +361,16 @@ class CapFreqWidget (QWidget):
             osc_type = 'V'
         elif self.signal_type_combo.currentText() == 'Current':
             osc_type = 'A'
+        else:
+            osc_type = 'UNKNOWN'
 
         bias = row[self.meas_setup_hheaders[3]]
         if self.bias_type_combo.currentText() == 'Voltage':
             bias_type = 'V'
         elif self.bias_type_combo.currentText() == 'Current':
             bias_type = 'A'
+        else:
+            bias_type = 'UNKNOWN'
 
         notes = self.notes.text()
 
@@ -432,7 +436,8 @@ class CapFreqWidget (QWidget):
                 cancel = QMessageBox.information(self, 'Measurement canceled',
                                                  'Measurement cancelled by user.',
                                                  QMessageBox.Ok, QMessageBox.Ok)
-                return
+                if cancel == QMessageBox.Ok:
+                    return
         # Fixme: maybe add more file save path checking i.e. blank or default location.
 
         # Write configured parameters to lcr

@@ -119,6 +119,8 @@ class LivePlotCanvas(FigCanvas, TimedAnimation):
             self.lines['head'].set_data(self.x[-1], self.y[-1])
         except KeyError:
             pass
+        except IndexError:
+            pass
 
         # Relimit the plot to keep data in view
         self.axes.relim()

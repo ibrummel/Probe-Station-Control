@@ -59,7 +59,7 @@ class CapFreqWidget (QWidget):
         self.signal_type_combo = QComboBox()
         self.bias_type_combo = QComboBox()
         self.num_data_pts_ln = QLineEdit(str(self.num_data_pts))
-        self.step_delay_ln = QLineEdit()
+        self.step_delay_ln = QLineEdit(str(self.step_delay))
         self.notes = QLineEdit()
         self.save_file_ln = QLineEdit()
         self.save_file_btn = QToolButton()
@@ -252,13 +252,25 @@ class CapFreqWidget (QWidget):
 
     def change_meas_aperture(self):
         self.measuring_time = self.measuring_time_combo.currentText()
-        self.measuring_avg = int(self.measuring_avg_ln.text())
+        try:
+            self.measuring_avg = int(self.measuring_avg_ln.text())
+        except ValueError:
+            self.measuring_avg = 1
+            self.measuring_avg_ln.setText(self.measuring_avg)
 
     def change_num_pts(self):
-        self.num_data_pts = int(self.num_data_pts_ln.text())
+        try:
+            self.num_data_pts = int(self.num_data_pts_ln.text())
+        except ValueError:
+            self.num_data_pts = 50
+            self.num_data_pts_ln.setText(self.num_data_pts)
 
     def change_step_delay(self):
-        self.step_delay = float(self.step_delay_ln.text())
+        try:
+            self.step_delay = float(self.step_delay_ln.text())
+        except ValueError:
+            self.step_delay = 0.0
+            self.step_delay_ln.setText(self.step_delay)
 
     def change_impedance_range(self):
         self.range = self.range_combo.currentText()
@@ -291,7 +303,12 @@ class CapFreqWidget (QWidget):
         self.save_file_path = self.save_file_ln.text()
 
     def change_num_measurements(self):
-        self.num_measurements = int(self.num_measurements_ln.text())
+        num = self.num_measurements
+        try:
+            self.num_measurements = int(self.num_measurements_ln.text())
+        except ValueError:
+            self.num_measurements = num
+
         self.meas_setup_table.setRowCount(self.num_measurements)
         self.update_table_vheaders()
         self.add_table_items()
@@ -418,6 +435,7 @@ class CapFreqWidget (QWidget):
                                                  'Measurement cancelled by user.',
                                                  QMessageBox.Ok, QMessageBox.Ok)
                 return
+        # Fixme: maybe add more file save path checking i.e. blank or default location.
 
         # Write configured parameters to lcr
         self.setup_lcr()
@@ -477,20 +495,14 @@ class CapFreqWidget (QWidget):
             self.header_dict[index] = self.generate_header(index, row)
             self.data_dict[index] = data_df
 
-        print('Saving Data')
         self.save_data()
 
         # Enable the user to change controls
-        print('Re-enabling controls')
         self.enable_controls(True)
         # Set live vals to update periodically
-        print('Enabling live value updates')
         self.enable_live_vals(True)
         # Disable live plotting of values
-        print('Disabling live plots')
         self.enable_live_plots(False)
-
-        print('Returning to default levels')
         self.return_to_defaults()
 
     def return_to_defaults(self):

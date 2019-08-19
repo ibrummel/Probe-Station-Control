@@ -1,6 +1,6 @@
 from Agilent_E4980A_Constants import *
 
-import visa
+import random
 from PyQt5.QtCore import QObject
 from PyQt5.QtCore import pyqtSignal
 from InstrumentSelectBox import InstrumentSelectBox
@@ -108,7 +108,7 @@ class AgilentE4980A(QObject):
         print(command)
 
     def get_data(self):
-        data = ['DataX', 'DataY', 'DataStat']
+        data = [1e5 * random.random(), -90 * random.random(), random.randint(0, 1)]
         return data
 
     def get_function_parameters(self):

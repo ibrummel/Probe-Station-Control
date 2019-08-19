@@ -2,7 +2,7 @@ from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import (QWidget, QComboBox, QLineEdit, QLabel, QFormLayout, QVBoxLayout,
                              QGroupBox, QTableWidget, QTableWidgetItem, QHBoxLayout, QMessageBox,
                              QToolButton, QApplication, QFileDialog, QFrame, QStyleFactory)
-from PyQt5.QtCore import QTimer, QThread, Qt, QSize, pyqtSignal
+from PyQt5.QtCore import QTimer, QThread, Qt, QSize, pyqtSignal, QObject, pyqtSlot
 import sys
 from pathlib import Path
 import os
@@ -16,13 +16,13 @@ from Agilent_E4980A import AgilentE4980A
 import Agilent_E4980A_Constants as Const
 import FormatLib
 from File_Print_Headers import *
-from Processing_Functions import generate_log_steps
+import Static_Functions as Static
 
 
 class CapFreqWidget (QWidget):
     # This signal needs to be defined before the __init__ in order to allow it to work
-    data_read = pyqtSignal()
-    
+    start_measurement_worker = pyqtSignal()
+
     def __init__(self, lcr: AgilentE4980A):
         super().__init__()
 
@@ -47,9 +47,10 @@ class CapFreqWidget (QWidget):
         self.lcr.dc_bias_state('on')
         self.return_to_defaults()
 
-        # Create a thread to hold the instrument class as a worker
-        self.instr_thread = QThread()
-        self.lcr.moveToThread(self.instr_thread)
+        # Create a thread to use for measuring data
+        self.measuring_thread = QThread()
+        self.measuring_worker = MeasureWorkerObj(self, self.lcr)
+        self.measuring_worker.moveToThread(self.measuring_thread)
 
         # Define controls for the overall measuring parameters
         self.measuring_param_box = QGroupBox('Measuring Parameters:')
@@ -85,7 +86,8 @@ class CapFreqWidget (QWidget):
                                              lead=False,
                                              head=True,
                                              draw_interval=350)
-        self.update_live_readout()
+        # Gets data and emits a signal to update live value readouts
+        self.lcr.get_data()
         self.live_readout_timer = QTimer()
         self.start_meas_btn = QToolButton()
 
@@ -109,13 +111,21 @@ class CapFreqWidget (QWidget):
         self.bias_type_combo.currentTextChanged.connect(self.change_bias_type)
         self.save_file_ln.editingFinished.connect(self.set_save_file_path_by_text)
         self.save_file_btn.clicked.connect(self.set_save_file_path_by_dialog)
-        self.save_file_btn.clicked.connect(self.print_size)   # DEBUG FOR SETTING SIZES
+        # self.save_file_btn.clicked.connect(self.print_size)   # DEBUG FOR SETTING SIZES
         self.num_measurements_ln.editingFinished.connect(self.change_num_measurements)
-        self.start_meas_btn.clicked.connect(self.measure)
+        self.start_meas_btn.clicked.connect(self.start_measurement)
 
         # Timers
-        self.live_readout_timer.timeout.connect(self.update_live_readout)
-        self.data_read.connect(self.update_live_readout)
+        self.live_readout_timer.timeout.connect(self.lcr.get_data)
+        self.lcr.new_data.connect(self.update_live_readout)
+        # Gets data and emits a signal to update live value readouts
+        self.lcr.get_data()
+
+        # Cross thread communication
+        self.measuring_worker.measurement_finished.connect(self.measuring_thread.quit)
+        self.measuring_thread.finished.connect(self.end_measurement)
+        self.measuring_thread.started.connect(self.measuring_worker.measure)
+
 
     def init_control_setup(self):
         # Set up initial table headers and size
@@ -162,9 +172,6 @@ class CapFreqWidget (QWidget):
 
         # Set up timers
         self.live_readout_timer.start(500)
-
-        # Update live readouts
-        self.update_live_readout()
 
     def init_layout(self):
         config_width = 325
@@ -317,12 +324,9 @@ class CapFreqWidget (QWidget):
         self.update_table_vheaders()
         self.add_table_items()
 
-    def update_live_readout(self):
-        print('Getting data from lcr for live vals')
-        vals = self.lcr.get_data()
-        print('Data retrieved from lcr')
-        self.val1_lbl.setText(str(vals[0]))
-        self.val2_lbl.setText(str(vals[1]))
+    def update_live_readout(self, data: list):
+        self.val1_lbl.setText(str(data[0]))
+        self.val2_lbl.setText(str(data[1]))
 
     def update_table_hheaders(self):
         self.meas_setup_table.setHorizontalHeaderLabels(self.meas_setup_hheaders)
@@ -398,12 +402,11 @@ class CapFreqWidget (QWidget):
         self.meas_setup_box.setEnabled(enable)
         self.measuring_param_box.setEnabled(enable)
 
-    def enable_live_vals(self, enable: bool):
+    def enable_live_val_timer(self, enable: bool):
         if enable:
-            self.live_readout_timer.start(500)
+            self.live_readout_timer.timeout.connect(self.lcr.get_data)
         elif not enable:
-            self.live_readout_timer.stop()
-
+            self.live_readout_timer.timeout.disconnect(self.lcr.get_data)
     def enable_live_plots(self, enable: bool):
         if enable:
             try:
@@ -423,7 +426,7 @@ class CapFreqWidget (QWidget):
         self.lcr.signal_level(self.signal_type, self.meas_setup_table.item(0, 2).text())
         self.lcr.dc_bias_level(self.bias_type, self.meas_setup_table.item(0, 3).text())
 
-    def measure(self):
+    def start_measurement(self):
         if os.path.isfile(self.save_file_path):
             overwrite = QMessageBox.warning(self, 'File already exists',
                                             'This data file already exists. Would you like to overwrite?',
@@ -431,7 +434,7 @@ class CapFreqWidget (QWidget):
                                             QMessageBox.No)
             if overwrite == QMessageBox.No:
                 self.set_save_file_path_by_dialog()
-                self.measure()
+                self.start_measurement()
             elif overwrite == QMessageBox.Cancel:
                 cancel = QMessageBox.information(self, 'Measurement canceled',
                                                  'Measurement cancelled by user.',
@@ -440,82 +443,38 @@ class CapFreqWidget (QWidget):
                     return
         # Fixme: maybe add more file save path checking i.e. blank or default location.
 
-        # Write configured parameters to lcr
-        self.setup_lcr()
-
+        # FIXME: Make the measurement start button turn into a stop button (will require a new sigal and code
+        #        in the measurement worker). Should it just dump the data?
         # Keep the user from changing values in the controls
         self.enable_controls(False)
         # Set live vals to update to last read value only
-        self.enable_live_vals(False)
+        self.enable_live_val_timer(False)
         # Enable live plotting of values, clear previous data
         self.enable_live_plots(True)
         self.val1_live_plot.clear_data()
         self.val2_live_plot.clear_data()
 
-        # Generate the matrix of tests to run
-        self.generate_test_matrix()
+        # Emit signal to start the worker measuring
+        self.measuring_thread.start()
 
-        # Set up the data column headers
-        columns = Const.PARAMETERS_BY_FUNC[Const.FUNC_DICT[self.function_combo.currentText()]]
-        columns.insert(0, 'Frequency [Hz]')
-        # For each measurement in the test matrix
-        for index, row in self.tests_df.iterrows():
-            # Create an empty data frame to hold results, Column Headers determined by measurement type
-            data_df = pd.DataFrame(data=None,
-                                   columns=columns)
-
-            # Pull in test specific values
-            start = row[self.meas_setup_hheaders[0]]
-            stop = row[self.meas_setup_hheaders[1]]
-            osc = row[self.meas_setup_hheaders[2]]
-            bias = row[self.meas_setup_hheaders[3]]
-
-            # Set lcr accordingly
-            self.lcr.signal_level(self.signal_type_combo.currentText(), osc)
-            self.lcr.dc_bias_level(self.bias_type_combo.currentText(), bias)
-
-            freq_steps = generate_log_steps(int(start), int(stop), int(self.num_data_pts))
-
-            for freq_step in freq_steps:
-                # Set the lcr to the correct frequency
-                self.lcr.signal_frequency(freq_step)
-
-                # Wait for measurement to stabilize (50ms to allow signal to stabilize + user set delay)
-                sleep(self.step_delay + 0.05)
-
-                # Trigger the measurement to start
-                self.lcr.trigger_init()
-
-                # Read the measurement result
-                data = self.lcr.get_data()
-                self.data_read.emit()
-                data.insert(0, self.lcr.get_signal_frequency())
-                data = pd.Series(data, index=data_df.columns)
-
-                # Store the data do the data_df
-                data_df = data_df.append(data, ignore_index=True)
-
-            # Store the measurement data in a field of the tests_df
-            self.header_dict[index] = self.generate_header(index, row)
-            self.data_dict[index] = data_df
-
+    # When the worker says it is done, save data and reset widget state to interactive
+    def end_measurement(self):
         self.save_data()
 
         # Enable the user to change controls
         self.enable_controls(True)
         # Set live vals to update periodically
-        self.enable_live_vals(True)
+        self.enable_live_val_timer(True)
         # Disable live plotting of values
         self.enable_live_plots(False)
         self.return_to_defaults()
 
+        print('Measurement finished')
+
     def return_to_defaults(self):
         self.lcr.dc_bias_level('voltage', 0)
-        print('DC bias set to 0')
         self.lcr.signal_level('voltage', 0.05)
-        print('Signal level (Oscillator) set to 50mV')
         self.lcr.signal_frequency(1000)
-        print('Signal frequency set to 1kHz')
 
     def save_data(self):
         with open(self.save_file_path, 'w') as file:
@@ -538,6 +497,70 @@ class CapFreqWidget (QWidget):
         self.val1_frame.setTitle(val_params[0])
         self.val2_live_plot.update_plot_labels(['Frequency [Hz]', val_params[1]])
         self.val2_frame.setTitle(val_params[1])
+
+
+class MeasureWorkerObj (QObject):
+    measurement_finished = pyqtSignal()
+
+    def __init__(self, parent: CapFreqWidget, lcr: AgilentE4980A):
+        super().__init__()
+        self.parent = parent
+
+    def init_connections(self):
+        self.parent.start_measurement_worker.connect(self.measure)
+
+    def measure(self):
+        # Write configured parameters to lcr
+        self.parent.setup_lcr()
+
+        # Generate the matrix of tests to run
+        self.parent.generate_test_matrix()
+
+        # Set up the data column headers
+        columns = Const.PARAMETERS_BY_FUNC[Const.FUNC_DICT[self.parent.function_combo.currentText()]]
+        if columns[0] != 'Frequency [Hz]':
+            columns.insert(0, 'Frequency [Hz]')
+        # For each measurement in the test matrix
+        for index, row in self.parent.tests_df.iterrows():
+            # Create an empty data frame to hold results, Column Headers determined by measurement type
+            data_df = pd.DataFrame(data=None,
+                                   columns=columns)
+
+            # Pull in test specific values
+            start = row[self.parent.meas_setup_hheaders[0]]
+            stop = row[self.parent.meas_setup_hheaders[1]]
+            osc = row[self.parent.meas_setup_hheaders[2]]
+            bias = row[self.parent.meas_setup_hheaders[3]]
+
+            # Set lcr accordingly
+            self.parent.lcr.signal_level(self.parent.signal_type_combo.currentText(), osc)
+            self.parent.lcr.dc_bias_level(self.parent.bias_type_combo.currentText(), bias)
+
+            freq_steps = Static.generate_log_steps(int(start), int(stop), int(self.parent.num_data_pts))
+
+            for freq_step in freq_steps:
+                # Set the lcr to the correct frequency
+                self.parent.lcr.signal_frequency(freq_step)
+
+                # Wait for measurement to stabilize (50ms to allow signal to stabilize + user set delay)
+                sleep(self.parent.step_delay + 0.05)
+
+                # Trigger the measurement to start
+                self.parent.lcr.trigger_init()
+
+                # Read the measurement result
+                data = self.parent.lcr.get_data()
+                data.insert(0, self.parent.lcr.get_signal_frequency())
+                data = pd.Series(data, index=data_df.columns)
+
+                # Store the data to the data_df
+                data_df = data_df.append(data, ignore_index=True)
+
+            # Store the measurement data in a field of the tests_df
+            self.parent.header_dict[index] = self.parent.generate_header(index, row)
+            self.parent.data_dict[index] = data_df
+
+        self.measurement_finished.emit()
 
 
 app = QApplication(sys.argv)

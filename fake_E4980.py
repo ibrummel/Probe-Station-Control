@@ -81,6 +81,9 @@ class AgilentE4980A(QObject):
     def get_signal_frequency(self):
         print(':FREQ?')
 
+        freq = 9999980 * random.random() + 20
+        return float(freq)
+
     def signal_level(self, signal_type: str, level, write_or_build='write'):
         if signal_type.lower() == 'voltage':
             command = ':VOLT {}'.format(level)
@@ -109,6 +112,7 @@ class AgilentE4980A(QObject):
 
     def get_data(self):
         data = [1e5 * random.random(), -90 * random.random(), random.randint(0, 1)]
+        self.new_data.emit(data)
         return data
 
     def get_function_parameters(self):

@@ -624,6 +624,8 @@ class MeasureWorkerObj (QObject):
                 # Read the measurement result
                 data = self.parent.lcr.get_data()
                 data.insert(0, self.parent.lcr.get_signal_frequency())
+                print(data)
+                print(data_df.columns)
                 data = pd.Series(data, index=data_df.columns)
 
                 # Store the data to the data_df

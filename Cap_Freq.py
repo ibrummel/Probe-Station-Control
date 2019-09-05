@@ -348,8 +348,8 @@ class CapFreqWidget (QWidget):
 
     def update_live_readout(self, data: list):
 
-        self.val1_lbl.setText(str(Static.truncate_to(data[0], 2)))
-        self.val2_lbl.setText(str(Static.truncate_to(data[1], 2)))
+        self.val1_lbl.setText(str(Static.to_sigfigs(data[1], 6)))
+        self.val2_lbl.setText(str(Static.to_sigfigs(data[2], 6)))
 
     def update_table_hheaders(self):
         self.meas_setup_table.setHorizontalHeaderLabels(self.meas_setup_hheaders)
@@ -551,8 +551,8 @@ class CapFreqWidget (QWidget):
                 ram_csv.close()
 
     def plot_new_points(self, data: list):
-        self.val1_live_plot.add_data([data[2], data[0]])
-        self.val2_live_plot.add_data([data[2], data[1]])
+        self.val1_live_plot.add_data([data[0], data[1]])
+        self.val2_live_plot.add_data([data[0], data[2]])
 
     def update_val_labels(self):
         val_params = Const.PARAMETERS_BY_FUNC[Const.FUNC_DICT[self.lcr_function]]
@@ -623,9 +623,6 @@ class MeasureWorkerObj (QObject):
 
                 # Read the measurement result
                 data = self.parent.lcr.get_data()
-                data.insert(0, self.parent.lcr.get_signal_frequency())
-                print(data)
-                print(data_df.columns)
                 data = pd.Series(data, index=data_df.columns)
 
                 # Store the data to the data_df

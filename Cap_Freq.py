@@ -449,19 +449,18 @@ class CapFreqWidget (QWidget):
         self.lcr.signal_level(self.signal_type, self.meas_setup_table.item(0, 2).text())
         self.lcr.dc_bias_level(self.bias_type, self.meas_setup_table.item(0, 3).text())
 
-    # def change_start_button(self):
-    #     if self.start_meas_btn.text() == 'Run Measurement Set':
-    #         self.start_meas_btn.setText('Stop Measuring')
-    #         self.start_meas_btn.setIcon(self.stop_icon)
-    #         self.start_meas_btn.clicked.disconnect(self.start_measurement)
-    #         self.start_meas_btn.clicked.connect(self.halt_measurement)
-    #     elif self.start_meas_btn.text() == 'Stop Measuring':
-    #         self.start_meas_btn.setText('Run Measurement Set')
-    #         self.start_meas_btn.setIcon(self.run_icon)
-    #
-    #
-    # def halt_measurement(self):
-    #     self.stop_measurement_worker.emit()
+    def change_start_button(self):
+        if self.start_meas_btn.text() == 'Run Measurement Set':
+            self.start_meas_btn.setText('Stop Measuring')
+            self.start_meas_btn.setIcon(self.stop_icon)
+            self.start_meas_btn.clicked.disconnect(self.start_measurement)
+            self.start_meas_btn.clicked.connect(self.halt_measurement)
+        elif self.start_meas_btn.text() == 'Stop Measuring':
+            self.start_meas_btn.setText('Run Measurement Set')
+            self.start_meas_btn.setIcon(self.run_icon)
+
+    def halt_measurement(self):
+        self.stop_measurement_worker.emit()
 
     def start_measurement(self):
         if os.path.isfile(self.save_file_path):
@@ -497,6 +496,7 @@ class CapFreqWidget (QWidget):
 
         # FIXME: Make the measurement start button turn into a stop button (will require a new signal and code
         #        in the measurement worker). Should it just dump the data?
+        self.change_start_button()
         # Set up the progress bar for this measurement
         self.meas_progress_bar.setMinimum(0)
         self.meas_progress_bar.setMaximum(self.num_measurements * self.num_data_pts)
@@ -526,12 +526,12 @@ class CapFreqWidget (QWidget):
         self.return_to_defaults()
 
         print('Measurement finished')
-        # self.change_start_button()
-        # try:
-        #     self.start_meas_btn.clicked.connect(self.start_measurement)
-        #     self.start_meas_btn.clicked.disconnect(self.halt_measurement)
-        # except TypeError:
-        #     print('changing connections failed')
+        self.change_start_button()
+        try:
+            self.start_meas_btn.clicked.connect(self.start_measurement)
+            self.start_meas_btn.clicked.disconnect(self.halt_measurement)
+        except TypeError:
+            print('changing connections failed')
 
     def return_to_defaults(self):
         self.lcr.dc_bias_level('voltage', 0)

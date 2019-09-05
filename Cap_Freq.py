@@ -11,8 +11,8 @@ from time import sleep
 import pandas as pd
 from datetime import datetime
 from Live_Data_Plotter import LivePlotWidget
-# from Agilent_E4980A import AgilentE4980A
-from fake_E4980 import AgilentE4980A
+from Agilent_E4980A import AgilentE4980A
+# from fake_E4980 import AgilentE4980A
 import Agilent_E4980A_Constants as Const
 import FormatLib
 from File_Print_Headers import *
@@ -347,8 +347,9 @@ class CapFreqWidget (QWidget):
         self.add_table_items()
 
     def update_live_readout(self, data: list):
-        self.val1_lbl.setText(str(data[0]))
-        self.val2_lbl.setText(str(data[1]))
+
+        self.val1_lbl.setText(str(Static.truncate_to(data[0], 2)))
+        self.val2_lbl.setText(str(Static.truncate_to(data[1], 2)))
 
     def update_table_hheaders(self):
         self.meas_setup_table.setHorizontalHeaderLabels(self.meas_setup_hheaders)

@@ -11,8 +11,8 @@ from time import sleep
 import pandas as pd
 from datetime import datetime
 from Live_Data_Plotter import LivePlotWidget
-from Agilent_E4980A import AgilentE4980A
-# from fake_E4980 import AgilentE4980A
+# from Agilent_E4980A import AgilentE4980A
+from fake_E4980 import AgilentE4980A
 import Agilent_E4980A_Constants as Const
 import FormatLib
 from File_Print_Headers import *
@@ -478,6 +478,21 @@ class CapFreqWidget (QWidget):
                                                  QMessageBox.Ok, QMessageBox.Ok)
                 if cancel == QMessageBox.Ok:
                     return
+        elif self.save_file_path == os.path.join(os.getenv('USERPROFILE'), 'Desktop'):
+            no_file_selected = QMessageBox.warning(self, 'No File Selected',
+                                                   'No file has been selected for writing data, '
+                                                   'please pick a file to save to.',
+                                                   QMessageBox.Ok | QMessageBox.Cancel,
+                                                   QMessageBox.Ok)
+            if no_file_selected == QMessageBox.Ok:
+                self.set_save_file_path_by_dialog()
+                self.start_measurement()
+            elif no_file_selected == QMessageBox.Cancel:
+                cancel = QMessageBox.information(self, 'Measurement canceled',
+                                                 'Measurement cancelled by user.',
+                                                 QMessageBox.Ok, QMessageBox.Ok)
+                if cancel == QMessageBox.Ok:
+                    return
         # Fixme: maybe add more file save path checking i.e. blank or default location.
 
         # FIXME: Make the measurement start button turn into a stop button (will require a new signal and code
@@ -511,12 +526,12 @@ class CapFreqWidget (QWidget):
         self.return_to_defaults()
 
         print('Measurement finished')
-        self.change_start_button()
-        try:
-            self.start_meas_btn.clicked.connect(self.start_measurement)
-            self.start_meas_btn.clicked.disconnect(self.halt_measurement)
-        except TypeError:
-            print('changing connections failed')
+        # self.change_start_button()
+        # try:
+        #     self.start_meas_btn.clicked.connect(self.start_measurement)
+        #     self.start_meas_btn.clicked.disconnect(self.halt_measurement)
+        # except TypeError:
+        #     print('changing connections failed')
 
     def return_to_defaults(self):
         self.lcr.dc_bias_level('voltage', 0)

@@ -160,6 +160,9 @@ class AgilentE4980A(QObject):
         data = data.rstrip().split(',')
 
         data = [float(x) for x in data]
+        freq = self.get_signal_frequency()
+
+        data.append(freq)
 
         self.new_data.emit(data)
         return data

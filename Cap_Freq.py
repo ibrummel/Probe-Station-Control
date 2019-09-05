@@ -132,7 +132,6 @@ class CapFreqWidget (QWidget):
         self.measuring_thread.finished.connect(self.end_measurement)
         self.measuring_thread.started.connect(self.measuring_worker.measure)
 
-
     def init_control_setup(self):
         # Set up initial table headers and size
         self.meas_setup_table.setRowCount(1)
@@ -263,7 +262,6 @@ class CapFreqWidget (QWidget):
         vals_hbox.addWidget(self.val1_frame, 50)
         vals_hbox.addWidget(self.val2_frame, 50)
 
-
         vals_vbox = QVBoxLayout()
         vals_vbox.addLayout(vals_hbox)
         vals_vbox.addLayout(progress_hbox)
@@ -274,7 +272,6 @@ class CapFreqWidget (QWidget):
         overall_hbox.addLayout(config_controls_vbox)
         overall_hbox.addLayout(vals_vbox)
         self.setLayout(overall_hbox)
-
 
     def print_size(self):
         print('Measuring Params:', self.measuring_param_box.size(), sep=' ')
@@ -432,6 +429,7 @@ class CapFreqWidget (QWidget):
             self.live_readout_timer.timeout.connect(self.lcr.get_data)
         elif not enable:
             self.live_readout_timer.timeout.disconnect(self.lcr.get_data)
+
     def enable_live_plots(self, enable: bool):
         if enable:
             try:
@@ -537,8 +535,8 @@ class CapFreqWidget (QWidget):
                 ram_csv.close()
 
     def plot_new_points(self, data: list):
-        self.val1_live_plot.add_data([self.lcr.get_signal_frequency(), data[0]])
-        self.val2_live_plot.add_data([self.lcr.get_signal_frequency(), data[1]])
+        self.val1_live_plot.add_data([data[2], data[0]])
+        self.val2_live_plot.add_data([data[2], data[1]])
 
     def update_val_labels(self):
         val_params = Const.PARAMETERS_BY_FUNC[Const.FUNC_DICT[self.lcr_function]]

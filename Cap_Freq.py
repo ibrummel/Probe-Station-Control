@@ -611,6 +611,10 @@ class MeasureWorkerObj (QObject):
 
             freq_steps = Static.generate_log_steps(int(start), int(stop), int(self.parent.num_data_pts))
 
+            # Start a new data line in each plot
+            self.parent.val1_live_plot.live_plot.start_new_line()
+            self.parent.val2_live_plot.live_plot.start_new_line()
+
             for step_idx in range(0, len(freq_steps)):
                 # Set the lcr to the correct frequency
                 self.parent.lcr.signal_frequency(freq_steps[step_idx])
@@ -637,10 +641,6 @@ class MeasureWorkerObj (QObject):
             # Store the measurement data in a field of the tests_df
             self.parent.header_dict[index] = self.parent.generate_header(index, row)
             self.parent.data_dict[index] = data_df
-
-            # Start a new data line in each plot
-            self.parent.val1_live_plot.live_plot.start_new_line()
-            self.parent.val2_live_plot.live_plot.start_new_line()
 
         self.stop = False
         self.measurement_finished.emit()

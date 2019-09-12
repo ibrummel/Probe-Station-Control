@@ -52,6 +52,7 @@ class CapFreqWidget (QWidget):
         self.measuring_thread = QThread()
         self.measuring_worker = MeasureWorkerObj(self, self.lcr)
         self.measuring_worker.moveToThread(self.measuring_thread)
+        self.lcr.moveToThread(self.measuring_thread)
 
         # Define controls for the overall measuring parameters
         self.measuring_param_box = QGroupBox('Measuring Parameters:')

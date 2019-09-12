@@ -638,6 +638,10 @@ class MeasureWorkerObj (QObject):
             self.parent.header_dict[index] = self.parent.generate_header(index, row)
             self.parent.data_dict[index] = data_df
 
+            # Start a new data line in each plot
+            self.parent.val1_live_plot.live_plot.start_new_line()
+            self.parent.val2_live_plot.live_plot.start_new_line()
+
         self.stop = False
         self.measurement_finished.emit()
 

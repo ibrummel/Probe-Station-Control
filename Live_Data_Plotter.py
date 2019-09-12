@@ -92,7 +92,7 @@ class LivePlotCanvas(FigCanvas, TimedAnimation):
         self.old_lines.append(copy(self.lines['line']))
         self.old_lines[-1].set_linestyle(':')
         # FIXME: Need to get dynamic colors for now its just jet to match defaults
-        colors = colormap.jet(np.linspace((0, 1, len(self.old_lines))))
+        colors = colormap.jet(np.linspace(0, 1, len(self.old_lines)))
         for line in reversed(self.old_lines):
             line.set_color(colors)
         self.x.clear()
@@ -140,3 +140,4 @@ class LivePlotCanvas(FigCanvas, TimedAnimation):
         self._drawn_artists = [line for key, line in self.lines.items()]
         for line in self.old_lines:
             self._drawn_artists.append(line)
+        print(self._drawn_artists)

@@ -1,6 +1,9 @@
 from PyQt5.QtWidgets import QFrame, QVBoxLayout
 from PyQt5.QtCore import QObject, QSize
+from copy import deepcopy
+import numpy as np
 from matplotlib.figure import Figure
+from matplotlib.pyplot import cm as colormap
 from matplotlib.animation import TimedAnimation
 from matplotlib.lines import Line2D
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigCanvas
@@ -65,6 +68,9 @@ class LivePlotCanvas(FigCanvas, TimedAnimation):
         if head:
             self.lines['head'] = Line2D([], [], color=head_color, marker='o', markeredgecolor=head_color)
 
+        # Create a list to hold old lines (used to store data when we want a color change
+        self.old_lines = []
+
         # Add the lines to the graph
         for key, line in self.lines.items():
             self.axes.add_line(line)
@@ -79,10 +85,23 @@ class LivePlotCanvas(FigCanvas, TimedAnimation):
         self.x.append(point[0])
         self.y.append(point[1])
 
-    def clear_data(self):
+    def change_line_color(self, line: str, color: str):
+        self.lines[line].set_color(color)
+
+    def start_new_line(self):
+        self.old_lines.append(deepcopy(self.lines['line']))
+        self.old_lines[-1].set_linestyle(':')
+        # FIXME: Need to get dynamic colors for now its just jet to match defaults
+        colors = colormap.jet(np.linspace((0, 1, len(self.old_lines))))
+        for line in reversed(self.old_lines):
+            line.set_color(colors)
         self.x.clear()
         self.y.clear()
 
+    def clear_data(self):
+        self.old_lines.clear()
+        self.x.clear()
+        self.y.clear()
 
     def change_axes_labels(self, axes_labels: list):
         self.axes.set_xlabel(axes_labels[0], fontsize=14, weight='bold')
@@ -94,15 +113,6 @@ class LivePlotCanvas(FigCanvas, TimedAnimation):
     def _init_draw(self):
         for key, line in self.lines.items():
             line.set_data([], [])
-    #
-    # def _step(self, *args):
-    #     # Extends the _step() method for the TimedAnimation class.
-    #     try:
-    #         TimedAnimation._step(self, *args)
-    #     except Exception:
-    #         print('Unable to draw next frame, stopping animation.')
-    #         TimedAnimation._stop(self)
-    #         pass
 
     def _draw_frame(self, framedata):
         self.lines['line'].set_data(self.x, self.y)
@@ -128,3 +138,5 @@ class LivePlotCanvas(FigCanvas, TimedAnimation):
 
         # Add each relevant line to the drawn artists
         self._drawn_artists = [line for key, line in self.lines.items()]
+        for line in self.old_lines:
+            self._drawn_artists.append(line)

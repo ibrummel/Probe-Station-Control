@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QFrame, QVBoxLayout
 from PyQt5.QtCore import QObject, QSize
-from copy import deepcopy
+from copy import copy
 import numpy as np
 from matplotlib.figure import Figure
 from matplotlib.pyplot import cm as colormap
@@ -89,7 +89,7 @@ class LivePlotCanvas(FigCanvas, TimedAnimation):
         self.lines[line].set_color(color)
 
     def start_new_line(self):
-        self.old_lines.append(deepcopy(self.lines['line']))
+        self.old_lines.append(copy(self.lines['line']))
         self.old_lines[-1].set_linestyle(':')
         # FIXME: Need to get dynamic colors for now its just jet to match defaults
         colors = colormap.jet(np.linspace((0, 1, len(self.old_lines))))

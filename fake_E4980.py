@@ -111,10 +111,10 @@ class AgilentE4980A(QObject):
         print(command)
 
     def get_data(self):
-        data = [1e5 * random.random(), -90 * random.random(), random.randint(0, 1)]
+        data = [1e5 * (random.random() + 0.001), -90 * (random.random() + 0.001), random.randint(0, 1)]
 
         freq = self.get_signal_frequency()
-        data.append(freq)
+        data.insert(0, freq)
 
         self.new_data.emit(data)
         return data

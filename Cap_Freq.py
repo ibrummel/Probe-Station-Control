@@ -411,7 +411,7 @@ class CapFreqWidget (QWidget):
                                         osc_type, osc,
                                         bias_type, bias,
                                         self.step_delay,
-                                        'Notes: {}'.format(notes))
+                                        'Notes:\t{}'.format(notes))
 
         return header
 

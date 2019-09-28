@@ -38,7 +38,7 @@ class AgilentE4980A(QObject):
                         curr_instr.close()
                     except AttributeError:
                         print('Error closing instrument that should be open')
-            except VisaIOError:
+            except:
                 print('Attempt to get identification string failed. Instrument at {} did not accept ID query'.format(instr))
                 curr_instr.close()
 

@@ -1,6 +1,7 @@
 from Agilent_E4980A_Constants import *
 
 import visa
+from pyvisa.errors import VisaIOError
 from PyQt5.QtCore import QObject
 from PyQt5.QtCore import pyqtSignal
 from InstrumentSelectBox import InstrumentSelectBox
@@ -37,7 +38,7 @@ class AgilentE4980A(QObject):
                         curr_instr.close()
                     except AttributeError:
                         print('Error closing instrument that should be open')
-            except visa.errors.VisaIOError:
+            except VisaIOError:
                 print('Attempt to get identification string failed. Instrument at {} did not accept ID query'.format(instr))
                 curr_instr.close()
 

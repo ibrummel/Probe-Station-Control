@@ -3,7 +3,7 @@ from Agilent_E4980A_Constants import *
 import random
 from PyQt5.QtCore import QObject
 from PyQt5.QtCore import pyqtSignal
-from InstrumentSelectBox import InstrumentSelectBox
+from Instrument_Select_Box import InstrumentSelectBox
 
 
 class AgilentE4980A(QObject):

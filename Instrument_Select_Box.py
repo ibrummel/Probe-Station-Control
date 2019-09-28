@@ -1,4 +1,5 @@
 import visa
+from pyvisa.errors import VisaIOError
 from PyQt5.QtWidgets import QDialog, QComboBox, QPushButton, QFormLayout, QLabel
 
 
@@ -14,7 +15,10 @@ class InstrumentSelectBox (QDialog):
 
         for instr in self.instruments:
             current_instr = self.rm.open_resource(instr)
-            self.instr_ids.append(current_instr.query("*IDN?"))
+            try:
+                self.instr_ids.append(current_instr.query("*IDN?"))
+            except VisaIOError:
+                print('Error getting instrument ID string from {}'.format(instr))
             current_instr.close()
 
         self.instr_combo_box = QComboBox()

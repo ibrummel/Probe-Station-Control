@@ -11,8 +11,8 @@ from time import sleep
 import pandas as pd
 from datetime import datetime
 from Live_Data_Plotter import LivePlotWidget
-# from Agilent_E4980A import AgilentE4980A
-from fake_E4980 import AgilentE4980A
+from Agilent_E4980A import AgilentE4980A
+# from fake_E4980 import AgilentE4980A
 import Agilent_E4980A_Constants as Const
 import FormatLib
 from File_Print_Headers import *

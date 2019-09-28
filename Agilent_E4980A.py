@@ -29,13 +29,17 @@ class AgilentE4980A(QObject):
         for instr in instruments:
             curr_instr = self.rm.open_resource(instr)
             # if the first 29 characters of the returned string match the LCR ID return
-            if curr_instr.query("*IDN?")[0:28] == ID_STR:
-                return curr_instr
-            else:
-                try:
-                    curr_instr.close()
-                except AttributeError:
-                    print('Error closing instrument that should be open')
+            try:
+                if curr_instr.query("*IDN?")[0:28] == ID_STR:
+                    return curr_instr
+                else:
+                    try:
+                        curr_instr.close()
+                    except AttributeError:
+                        print('Error closing instrument that should be open')
+            except visa.errors.VisaIOError:
+                print('Attempt to get identification string failed. Instrument at {} did not accept ID query'.format(instr))
+                curr_instr.close()
 
     def manual_connect_lcr(self):
         self.select_box.exec_()

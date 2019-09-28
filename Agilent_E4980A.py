@@ -28,6 +28,7 @@ class AgilentE4980A(QObject):
         instruments = self.rm.list_resources()
 
         for instr in instruments:
+            print(instr)
             curr_instr = self.rm.open_resource(instr)
             # if the first 29 characters of the returned string match the LCR ID return
             try:
@@ -38,7 +39,7 @@ class AgilentE4980A(QObject):
                         curr_instr.close()
                     except AttributeError:
                         print('Error closing instrument that should be open')
-            except:
+            except VisaIOError:
                 print('Attempt to get identification string failed. Instrument at {} did not accept ID query'.format(instr))
                 curr_instr.close()
 

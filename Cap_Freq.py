@@ -77,7 +77,11 @@ class CapFreqWidget (QTabWidget):
         self.meas_setup_box = QGroupBox('Measurement(s) Setup:')
         self.num_measurements_ln = QLineEdit(str(self.num_measurements))
         self.meas_setup_table = QTableWidget()
-        self.meas_setup_hheaders = ['Frequency Start [Hz]', 'Frequency Stop [Hz]', 'Oscillator [V]', 'DC Bias [V]']
+        self.meas_setup_hheaders = ['Frequency Start [Hz]',
+                                    'Frequency Stop [Hz]',
+                                    'Oscillator [V]',
+                                    'DC Bias [V]',
+                                    'Measurement Delay [s]']
         self.meas_setup_vheaders = ['M1']
 
         # Define running measurement tab
@@ -150,7 +154,7 @@ class CapFreqWidget (QTabWidget):
     def init_control_setup(self):
         # Set up initial table headers and size
         self.meas_setup_table.setRowCount(1)
-        self.meas_setup_table.setColumnCount(4)
+        self.meas_setup_table.setColumnCount(5)
         self.meas_setup_table.setHorizontalHeaderLabels(self.meas_setup_hheaders)
         self.meas_setup_table.setVerticalHeaderLabels(self.meas_setup_vheaders)
         self.meas_setup_table.setWordWrap(True)
@@ -160,6 +164,7 @@ class CapFreqWidget (QTabWidget):
         self.meas_setup_table.item(0, 1).setText('1000000')
         self.meas_setup_table.item(0, 2).setText('0.05')
         self.meas_setup_table.item(0, 3).setText('0')
+        self.meas_setup_table.item(0, 4).setText('0')
 
         # Set up comboboxes
         self.range_combo.addItems(Const.VALID_IMP_RANGES)
@@ -673,7 +678,22 @@ class MeasureWorkerObj (QObject):
             stop = row[self.parent.meas_setup_hheaders[1]]
             osc = row[self.parent.meas_setup_hheaders[2]]
             bias = row[self.parent.meas_setup_hheaders[3]]
+            delay = row[self.parent.meas_setup_hheaders[4]]
+            # ToDo: Should delay be added to the current measurement labels?
             self.set_current_meas_labels(start, stop, osc, bias)
+
+            # ToDo: Should this set to defualt during this wait? Seems like yes to avoid over exposure to
+            #  bias/signal. Also user can set settling time elsewhere that would allow sample to be exposed
+            #  to measuring conditions longer.
+            self.parent.return_to_defaults()
+            count = 0
+            while count < delay:
+                sleep(1)
+                if (delay - count) > 10 and not (count % 10):
+                    print('Sleeping until measurement time. Time Remaining: {}s'.format((delay-count)))
+                elif (delay-count) <= 10:
+                    print('Sleeping until measurement time. Time Remaining: {}s'.format((delay - count)))
+                count += 1
 
             # Set lcr accordingly
             self.parent.lcr.signal_level(self.parent.signal_type_combo.currentText(), osc)

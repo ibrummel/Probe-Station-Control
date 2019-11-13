@@ -76,6 +76,7 @@ class LivePlotCanvas(FigCanvas, TimedAnimation):
             self.axes.add_line(line)
 
         # Add titles
+        self.axes_labels = axes_labels
         self.change_axes_labels(axes_labels)
 
         FigCanvas.__init__(self, self.figure)
@@ -109,8 +110,11 @@ class LivePlotCanvas(FigCanvas, TimedAnimation):
         # Re-add the lines to the graph so that the main line can be plotted again.
         for key, line in self.lines.items():
             self.axes.add_line(line)
+        # Re initialize the axes labels
+        self.change_axes_labels(self.axes_labels)
 
     def change_axes_labels(self, axes_labels: list):
+        self.axes_labels = axes_labels
         self.axes.set_xlabel(axes_labels[0], fontsize=14, weight='bold')
         self.axes.set_ylabel(axes_labels[1], fontsize=14, weight='bold')
 

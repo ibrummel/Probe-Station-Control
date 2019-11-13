@@ -677,7 +677,7 @@ class MeasureWorkerObj (QObject):
             stop = row[self.parent.meas_setup_hheaders[1]]
             osc = row[self.parent.meas_setup_hheaders[2]]
             bias = row[self.parent.meas_setup_hheaders[3]]
-            delay = row[self.parent.meas_setup_hheaders[4]]
+            delay = int(row[self.parent.meas_setup_hheaders[4]])
             # ToDo: Should delay be added to the current measurement labels?
             self.set_current_meas_labels(start, stop, osc, bias)
 
@@ -693,7 +693,8 @@ class MeasureWorkerObj (QObject):
                 elif (delay-count) <= 10:
                     print('Sleeping until measurement time. Time Remaining: {}s'.format((delay - count)))
                 count += 1
-
+                
+            print('Beginning measurement...')
             # Set lcr accordingly
             self.parent.lcr.signal_level(self.parent.signal_type_combo.currentText(), osc)
             self.parent.lcr.dc_bias_level(self.parent.bias_type_combo.currentText(), bias)

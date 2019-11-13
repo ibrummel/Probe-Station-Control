@@ -21,7 +21,6 @@ import Static_Functions as Static
 
 class CapFreqWidget (QTabWidget):
     # This signal needs to be defined before the __init__ in order to allow it to work
-    start_measurement_worker = pyqtSignal()
     stop_measurement_worker = pyqtSignal()
 
     def __init__(self, lcr: AgilentE4980A):
@@ -29,7 +28,7 @@ class CapFreqWidget (QTabWidget):
 
         # Define class variables and objects
         self.lcr = lcr
-        self.lcr_function = 'self.lcr.get_current_function()'
+        self.lcr_function = 'self.lcr.get_current_function()'  # Dummy value which is set after connection
         self.measuring_time = 'long'
         self.range = 'auto'
         self.measuring_avg = 1

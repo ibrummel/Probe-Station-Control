@@ -91,7 +91,7 @@ class LivePlotCanvas(FigCanvas, TimedAnimation):
     def start_new_line(self):
         self.old_lines.append(copy(self.lines['line']))
         self.old_lines[-1].set_linestyle(':')
-        # FIXME: Need to get dynamic colors for now its just winter to match defaults
+        # FIXME: Need to get dynamic colors, for now its just winter to match defaults
         colors = colormap.winter(np.linspace(0, 1, len(self.old_lines)))
         for (i, line) in enumerate(reversed(self.old_lines)):
             line.set_color(colors[i])
@@ -104,6 +104,7 @@ class LivePlotCanvas(FigCanvas, TimedAnimation):
         self.old_lines.clear()
         self.x.clear()
         self.y.clear()
+        self.axes.clear()
 
     def change_axes_labels(self, axes_labels: list):
         self.axes.set_xlabel(axes_labels[0], fontsize=14, weight='bold')
@@ -124,6 +125,8 @@ class LivePlotCanvas(FigCanvas, TimedAnimation):
             self.lines['lead'].set_data(self.x[-self.lead_length:],
                                         self.y[-self.lead_length:])
         except KeyError:
+            pass
+        except IndexError:
             pass
 
         try:

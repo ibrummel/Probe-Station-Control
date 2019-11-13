@@ -106,6 +106,10 @@ class LivePlotCanvas(FigCanvas, TimedAnimation):
         self.y.clear()
         self.axes.clear()
 
+        # Re-add the lines to the graph so that the main line can be plotted again.
+        for key, line in self.lines.items():
+            self.axes.add_line(line)
+
     def change_axes_labels(self, axes_labels: list):
         self.axes.set_xlabel(axes_labels[0], fontsize=14, weight='bold')
         self.axes.set_ylabel(axes_labels[1], fontsize=14, weight='bold')

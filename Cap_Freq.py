@@ -129,7 +129,7 @@ class CapFreqWidget (QTabWidget):
         self.range_combo.currentTextChanged.connect(self.change_impedance_range)
         self.signal_type_combo.currentTextChanged.connect(self.change_signal_type)
         self.bias_type_combo.currentTextChanged.connect(self.change_bias_type)
-        self.save_file_ln.editingFinished.connect(self.set_save_file_path_by_text)
+        self.save_file_ln.editingFinished.connect(self.set_save_file_path_by_line)
         self.save_file_btn.clicked.connect(self.set_save_file_path_by_dialog)
         # self.save_file_btn.clicked.connect(self.print_size)   # DEBUG FOR SETTING SIZES
         self.num_measurements_ln.editingFinished.connect(self.change_num_measurements)
@@ -384,7 +384,7 @@ class CapFreqWidget (QTabWidget):
 
         self.save_file_ln.setText(self.save_file_path)
 
-    def set_save_file_path_by_text(self):
+    def set_save_file_path_by_line(self):
         self.save_file_path = self.save_file_ln.text()
 
     def change_num_measurements(self):
@@ -527,6 +527,7 @@ class CapFreqWidget (QTabWidget):
         self.stop_measurement_worker.emit()
 
     def start_measurement(self):
+        self.set_save_file_path_by_line()
         if os.path.isfile(self.save_file_path):
             overwrite = QMessageBox.warning(self, 'File already exists',
                                             'This data file already exists. Would you like to overwrite?',

@@ -2,6 +2,7 @@ from PyQt5.QtWidgets import QFrame, QVBoxLayout
 from PyQt5.QtCore import QObject, QSize
 from copy import copy
 import numpy as np
+from matplotlib import colors
 from matplotlib.figure import Figure
 from matplotlib.pyplot import cm as colormap
 from matplotlib.animation import TimedAnimation
@@ -11,11 +12,11 @@ from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavToolBa
 
 
 class LivePlotWidget(QFrame):
-    def __init__(self, parent=None, axes_labels=['x', 'y'], lead=True, lead_length=3, head=True, line_color='blue', head_color='red', draw_interval=200):
+    def __init__(self, parent=None, dual_y=False, axes_labels=['x', 'y'], lead=True, lead_length=3, head=True, line_color='blue', head_color='red', draw_interval=200):
         super().__init__(parent)
 
         # Create child widgets
-        self.live_plot = LivePlotCanvas(axes_labels, lead, lead_length, head, line_color, head_color, draw_interval)
+        self.live_plot = LivePlotCanvas(dual_y, axes_labels, lead, lead_length, head, line_color, head_color, draw_interval)
         self.toolbar = NavToolBar(self.live_plot, self, coordinates=True)
 
         self.init_connections()
@@ -48,25 +49,29 @@ class LivePlotWidget(QFrame):
 
 
 class LivePlotCanvas(FigCanvas, TimedAnimation):
-    def __init__(self, axes_labels: list, lead: bool, lead_length: int, head: bool, line_color: str,
-                 head_color: str, draw_interval: str):
+    def __init__(self, dual_y: bool, axes_labels: list, lead: list, lead_length: list, head: list, line_color: list,
+                 head_color: list, draw_interval: list):
 
-        self.lead_length = int(lead_length)
+        self.lead_length = lead_length
+        for idx, value in enumerate(lead_length):
+            self.lead_length[idx] = int(value)
+        self.line_width = 2
 
         # Plot Data
         self.x = [0]
-        self.y = [0]
+        self.y1 = [0]
 
         # Plot figure
         self.figure = Figure(figsize=(5, 5))
         self.axes = self.figure.add_subplot(111)
 
-        # Create the line dictionary
-        self.lines = {'line': Line2D([], [], color=line_color)}
+        # Create the line dictionary for the primary axes
+        self.lines = {'line': Line2D([], [], color=line_color[0])}
         if lead:
-            self.lines['lead'] = Line2D([], [], color=head_color, linewidth=2)
+            self.lines['lead'] = Line2D([], [], color=head_color[0], linewidth=self.line_width)
         if head:
-            self.lines['head'] = Line2D([], [], color=head_color, marker='*', markeredgecolor=head_color)
+            self.lines['head'] = Line2D([], [], color=head_color[0], marker='*', markeredgecolor=head_color)
+
 
         # Create a list to hold old lines (used to store data when we want a color change
         self.old_lines = []
@@ -75,7 +80,31 @@ class LivePlotCanvas(FigCanvas, TimedAnimation):
         for key, line in self.lines.items():
             self.axes.add_line(line)
 
-        # Add titles
+        # If a dual y is called for, setup another spot for data and the second axes
+        self.dual_y = dual_y
+        if dual_y:
+            self.axes2 = self.axes.twinx()
+            self.y2 = [0]
+
+            # Create the line dictionary for the secondary axes
+            self.lines2 = {'line': Line2D([], [], color=line_color[1])}
+            if lead:
+                self.lines2['lead'] = Line2D([], [], color=head_color[1], linewidth=self.line_width)
+            if head:
+                self.lines2['head'] = Line2D([], [], color=head_color[1], marker='*', markeredgecolor=head_color[1])
+
+            self.old_lines2 = []
+
+            # Add the lines for the second set of axes to the plot
+            for key, line in self.lines2.items():
+                self.axes2.add_line(line)
+
+            # Set axes to match the colors of their main lines if we have dual y otherwise primary will stay black
+            self.axes.tick_params(axis='y', labelcolor=line_color[0])
+            self.axes2.tick_params(axis='y', labelcolor=line_color[1])
+
+
+        # Add labels
         self.axes_labels = axes_labels
         self.change_axes_labels(axes_labels)
 
@@ -84,32 +113,112 @@ class LivePlotCanvas(FigCanvas, TimedAnimation):
 
     def add_data(self, point: list):
         self.x.append(point[0])
-        self.y.append(point[1])
+        self.y1.append(point[1])
+        if self.dual_y:
+            self.y2.append(point[2])
 
-    def change_line_color(self, line: str, color: str):
-        self.lines[line].set_color(color)
+    def set_draw_interval(self, draw_interval: int):
+        TimedAnimation._interval = draw_interval
+        # Fixme: I hope this works ok.
+
+    def set_head(self, head: list, head_color: list):
+        if head[0]:
+            self.lines['head'] = Line2D([], [], color=head_color[0], marker='*', markeredgecolor=head_color[0])
+        elif not head[0]:
+            try:
+                self.lines.pop('head')
+            except KeyError:
+                print('Primary axis head was already disabled')
+
+        if self.dual_y:
+            if head[1]:
+                self.lines['head'] = Line2D([], [], color=head_color[1], marker='*', markeredgecolor=head_color[1])
+            elif not head[1]:
+                try:
+                    self.lines.pop('head')
+                except KeyError:
+                    print('Secondary axis head was already disabled')
+
+    def set_lead(self, lead: list, lead_color: list):
+        if lead[0]:
+            self.lines['lead'] = Line2D([], [], color=lead_color[0], linewidth=self.line_width)
+        elif not lead[0]:
+            try:
+                self.lines.pop('lead')
+            except KeyError:
+                print('Primary axis lead was already disabled.')
+
+        if self.dual_y:
+            if lead[1]:
+                self.lines['lead'] = Line2D([], [], color=lead_color[1], linewidth=self.line_width)
+            elif not lead[1]:
+                try:
+                    self.lines.pop('lead')
+                except KeyError:
+                    print('Secondary axis lead was already disabled.')
+
+    def change_line_color(self, line: str, color: list):
+        self.lines[line].set_color(color[0])
+
+        if self.dual_y:
+            self.lines2[line].set_color(color[1])
+            if line == 'line':
+                self.axes.tick_params(axis='y', labelcolor=color[0])
+                self.axes2.tick_params(axis='y', labelcolor=color[1])
+
 
     def start_new_line(self):
+        curr_color = colors.to_hex(self.lines['line'].get_color())
+
         self.old_lines.append(copy(self.lines['line']))
         self.old_lines[-1].set_linestyle(':')
-        # FIXME: Need to get dynamic colors, for now its just winter to match defaults
-        colors = colormap.winter(np.linspace(0, 1, len(self.old_lines)))
-        for (i, line) in enumerate(reversed(self.old_lines)):
-            line.set_color(colors[i])
+
+        # FIXME: Verify that new dynamic coloring is working takes color value then adds transparency to previous lines
+        old_line_alphas = list(np.linspace(30, 100, len(self.old_lines), False))
+        for idx, value in enumerate(old_line_alphas):
+            old_line_alphas[idx] = hex(int(256 * (value / 100)))[-2:]
+
+        for idx, line in enumerate(self.old_lines):
+            line.set_color(curr_color + old_line_alphas[idx])
 
         self.axes.add_line(self.old_lines[-1])
         self.x.clear()
-        self.y.clear()
+        self.y1.clear()
+
+        if self.dual_y:
+            curr_color2 = colors.to_hex(self.lines2['line'].get_color())
+
+            self.old_lines2.append(copy(self.lines2['line']))
+            self.old_lines2[-1].set_linestyle(':')
+
+            old_line_alphas2 = list(np.linspace(30, 100, len(self.old_lines2), False))
+            for idx, value in enumerate(old_line_alphas2):
+                old_line_alphas2[idx] = hex(int(256 * (value / 100)))[-2:]
+
+            for idx, line in enumerate(self.old_lines2):
+                line.set_color(curr_color2 + old_line_alphas2[idx])
+
+            self.axes2.add_line(self.old_lines2[-1])
+            self.y2.clear()
 
     def clear_data(self):
         self.old_lines.clear()
         self.x.clear()
-        self.y.clear()
+        self.y1.clear()
         self.axes.clear()
 
         # Re-add the lines to the graph so that the main line can be plotted again.
         for key, line in self.lines.items():
             self.axes.add_line(line)
+
+        if self.dual_y:
+            self.old_lines2.clear()
+            self.y2.clear()
+            self.axes2.clear()
+
+            for key, line in self.lines2.items():
+                self.axes2.add_line(line)
+
         # Re initialize the axes labels
         self.change_axes_labels(self.axes_labels)
 
@@ -117,6 +226,8 @@ class LivePlotCanvas(FigCanvas, TimedAnimation):
         self.axes_labels = axes_labels
         self.axes.set_xlabel(axes_labels[0], fontsize=14, weight='bold')
         self.axes.set_ylabel(axes_labels[1], fontsize=14, weight='bold')
+        if self.dual_y:
+            self.axes2.set_ylabel(axes_labels[2], fontsize=14, weight='bold')
 
     def new_frame_seq(self):
         return iter(range(200))
@@ -125,13 +236,17 @@ class LivePlotCanvas(FigCanvas, TimedAnimation):
         for key, line in self.lines.items():
             line.set_data([], [])
 
+        if self.dual_y:
+            for key, line in self.lines2.items():
+                line.set_data([], [])
+
     def _draw_frame(self, framedata):
-        self.lines['line'].set_data(self.x, self.y)
+        self.lines['line'].set_data(self.x, self.y1)
 
         try:
             # If there is a lead line, plot lead_length of the data as red
             self.lines['lead'].set_data(self.x[-self.lead_length:],
-                                        self.y[-self.lead_length:])
+                                        self.y1[-self.lead_length:])
         except KeyError:
             pass
         except IndexError:
@@ -139,7 +254,7 @@ class LivePlotCanvas(FigCanvas, TimedAnimation):
 
         try:
             # If there is a head, plot the last data point as a red dot
-            self.lines['head'].set_data(self.x[-1], self.y[-1])
+            self.lines['head'].set_data(self.x[-1], self.y1[-1])
         except KeyError:
             pass
         except IndexError:
@@ -149,7 +264,39 @@ class LivePlotCanvas(FigCanvas, TimedAnimation):
         self.axes.relim()
         self.axes.autoscale_view()
 
+        # Handle the secondary axis
+        if self.dual_y:
+            self.lines2['line'].set_data(self.x, self.y2)
+
+            try:
+                # If there is a lead line, plot lead_length of the data as red
+                self.lines2['lead'].set_data(self.x[-self.lead_length[1]:],
+                                            self.y2[-self.lead_length[1]:])
+            except KeyError:
+                pass
+            except IndexError:
+                pass
+
+            try:
+                # If there is a head, plot the last data point as a red dot
+                self.lines2['head'].set_data(self.x[-1], self.y2[-1])
+            except KeyError:
+                pass
+            except IndexError:
+                pass
+
+            # Relimit the plot to keep data in view
+            self.axes2.relim()
+            self.axes2.autoscale_view()
+
         # Add each relevant line to the drawn artists
         self._drawn_artists = [line for key, line in self.lines.items()]
         for line in self.old_lines:
             self._drawn_artists.append(line)
+        # Add the secondary axis lines if relevant
+        if self.dual_y:
+            for line in self.lines2:
+                self._drawn_artists.append(line)
+
+            for line in self.old_lines2:
+                self._drawn_artists.append(line)

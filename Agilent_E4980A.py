@@ -2,8 +2,7 @@ from Agilent_E4980A_Constants import *
 
 import visa
 from pyvisa.errors import VisaIOError
-from PyQt5.QtCore import QObject
-from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtCore import QObject, pyqtSignal
 from Instrument_Select_Box import InstrumentSelectBox
 
 

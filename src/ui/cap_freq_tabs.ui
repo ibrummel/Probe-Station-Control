@@ -19,7 +19,7 @@
   <property name="currentIndex">
    <number>1</number>
   </property>
-  <widget class="QWidget" name="tab_setup">
+  <widget class="QWidget" name="tab_meas_setup">
    <attribute name="title">
     <string>Measurement Setup</string>
    </attribute>
@@ -225,7 +225,7 @@
     </item>
    </layout>
   </widget>
-  <widget class="QWidget" name="tab_measurement">
+  <widget class="QWidget" name="tab_run_meas">
    <attribute name="title">
     <string>Run Mreasurement</string>
    </attribute>
@@ -530,7 +530,7 @@
   <customwidget>
    <class>LivePlotWidget</class>
    <extends>QFrame</extends>
-   <header>CustomWidgets/Live_Data_Plotter.h</header>
+   <header>Live_Data_Plotter.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

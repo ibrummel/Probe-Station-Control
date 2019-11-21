@@ -11,8 +11,8 @@ from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavToolBa
 
 
 class LivePlotWidget(QFrame):
-    def __init__(self, axes_labels: list, lead=True, lead_length=3, head=True, line_color='blue', head_color='red', draw_interval=200):
-        super().__init__()
+    def __init__(self, parent=None, axes_labels=['x', 'y'], lead=True, lead_length=3, head=True, line_color='blue', head_color='red', draw_interval=200):
+        super().__init__(parent)
 
         # Create child widgets
         self.live_plot = LivePlotCanvas(axes_labels, lead, lead_length, head, line_color, head_color, draw_interval)
@@ -66,7 +66,7 @@ class LivePlotCanvas(FigCanvas, TimedAnimation):
         if lead:
             self.lines['lead'] = Line2D([], [], color=head_color, linewidth=2)
         if head:
-            self.lines['head'] = Line2D([], [], color=head_color, marker='$\smiley$', markeredgecolor=head_color)
+            self.lines['head'] = Line2D([], [], color=head_color, marker='*', markeredgecolor=head_color)
 
         # Create a list to hold old lines (used to store data when we want a color change
         self.old_lines = []

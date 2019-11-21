@@ -11,9 +11,9 @@ from time import sleep
 import pandas as pd
 from datetime import datetime
 from Live_Data_Plotter import LivePlotWidget
-from Agilent_E4980A import AgilentE4980A
+#from Agilent_E4980A import AgilentE4980A
 # Can be used to emulate the LCR without connection data will be garbage (random numbers)
-# from fake_E4980 import AgilentE4980A
+from fake_E4980 import AgilentE4980A
 import Agilent_E4980A_Constants as Const
 from File_Print_Headers import *
 import Static_Functions as Static
@@ -137,7 +137,7 @@ class CapFreqWidget (QTabWidget):
         self.btn_setup_start_stop.clicked.connect(self.on_start_stop_clicked)
 
         # Timers
-        self.live_readout_timer.timeout.connect(self.lcr.get_data)
+        self.live_readout_timer.timeout.connect(self.get_new_data)
         self.lcr.new_data.connect(self.update_live_readout)
         # Gets data and emits a signal to update live value readouts
         self.lcr.get_data()
@@ -172,16 +172,13 @@ class CapFreqWidget (QTabWidget):
         self.combo_bias_type.addItems(['Voltage', 'Current'])
 
         # Set up timers
+        print('Timer started')
         self.live_readout_timer.start(500)
 
-        # Set up progress bar
-        self.progress_bar_meas.setOrientation(Qt.Horizontal)
-        self.progress_bar_meas.setTextVisible(True)
-        self.lbl_meas_progress.setAlignment(Qt.AlignCenter)
-
-    def print_size(self):
-        print('Measuring Params:', self.gbox_meas_set_params.size(), sep=' ')
-        print('Measurement setup:', self.gbox_meas_setup.size(), sep=' ')
+    def get_new_data(self):
+        # Helper function to get new data on timer timeout. Was failing when called directly, could be something about
+        #  having a return value?
+        self.lcr.get_data()
 
     def change_function(self):
         self.lcr_function = self.combo_function.currentText()
@@ -253,6 +250,7 @@ class CapFreqWidget (QTabWidget):
         self.add_table_items()
 
     def update_live_readout(self, data: list):
+        print(data)
         self.lbl_curr_freq.setText(str(Static.si_prefix(data[0], 'Hz', 4)))
         self.lbl_val1.setText(str(Static.to_sigfigs(data[1], 6)))
         self.lbl_val2.setText(str(Static.to_sigfigs(data[2], 6)))

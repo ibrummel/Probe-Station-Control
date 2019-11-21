@@ -330,9 +330,9 @@ class CapFreqWidget (QTabWidget):
     def enable_live_val_timer(self, enable: bool):
         try:
             if enable:
-                self.live_readout_timer.timeout.connect(self.lcr.get_data)
+                self.live_readout_timer.timeout.connect(self.get_new_data)
             elif not enable:
-                self.live_readout_timer.timeout.disconnect(self.lcr.get_data)
+                self.live_readout_timer.timeout.disconnect(self.get_new_data)
         except TypeError:
             print('Unable to disconnect or reconnect live value timer correctly')
 

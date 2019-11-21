@@ -5,18 +5,16 @@ from PyQt5.QtWidgets import (QWidget, QComboBox, QLineEdit, QLabel, QFormLayout,
                              QToolButton, QApplication, QFileDialog, QFrame, QStyleFactory, QProgressBar, QPushButton)
 from PyQt5.QtCore import QTimer, QThread, Qt, QSize, pyqtSignal, QObject
 import sys
-from pathlib import Path
 import os
 from io import StringIO
 from time import sleep
 import pandas as pd
 from datetime import datetime
 from Live_Data_Plotter import LivePlotWidget
-# Fixme: put this back to normal.
-# from Agilent_E4980A import AgilentE4980A
-from fake_E4980 import AgilentE4980A
+from Agilent_E4980A import AgilentE4980A
+# Can be used to emulate the LCR without connection data will be garbage (random numbers)
+# from fake_E4980 import AgilentE4980A
 import Agilent_E4980A_Constants as Const
-import FormatLib
 from File_Print_Headers import *
 import Static_Functions as Static
 
@@ -81,6 +79,7 @@ class CapFreqWidget (QTabWidget):
         # Define controls for the per measurement settings
         self.gbox_meas_setup = self.findChild(QGroupBox, 'gbox_meas_setup')
         self.ln_num_meas = self.findChild(QLineEdit, 'ln_num_meas')
+        self.ln_num_meas.setText(str(self.num_measurements))
         self.table_meas_setup = self.findChild(QTableWidget, 'table_meas_setup')
         self.meas_setup_hheaders = ['Frequency Start [Hz]',
                                     'Frequency Stop [Hz]',
@@ -120,7 +119,6 @@ class CapFreqWidget (QTabWidget):
         # Initialize widget bits
         self.init_connections()
         self.init_control_setup()
-        self.init_layout()
 
     def init_connections(self):
         # Control edit connections
@@ -134,11 +132,9 @@ class CapFreqWidget (QTabWidget):
         self.combo_bias_type.currentTextChanged.connect(self.change_bias_type)
         self.ln_save_file.editingFinished.connect(self.set_save_file_path_by_line)
         self.btn_save_file.clicked.connect(self.set_save_file_path_by_dialog)
-        # self.save_file_btn.clicked.connect(self.print_size)   # DEBUG FOR SETTING SIZES
         self.ln_num_meas.editingFinished.connect(self.change_num_measurements)
-        self.btn_run_start_stop.clicked.connect(self.start_measurement)
-        self.btn_setup_start_stop.clicked.connect(self.start_measurement)
-        # self.start_meas_btn.clicked.connect(self.change_start_button)
+        self.btn_run_start_stop.clicked.connect(self.on_start_stop_clicked)
+        self.btn_setup_start_stop.clicked.connect(self.on_start_stop_clicked)
 
         # Timers
         self.live_readout_timer.timeout.connect(self.lcr.get_data)
@@ -181,124 +177,7 @@ class CapFreqWidget (QTabWidget):
         # Set up progress bar
         self.progress_bar_meas.setOrientation(Qt.Horizontal)
         self.progress_bar_meas.setTextVisible(True)
-        # self.setMinimumHeight(60)
         self.lbl_meas_progress.setAlignment(Qt.AlignCenter)
-
-    def init_layout(self):
-        config_width = 325
-
-        # Set widget geometry
-        # self.sizePolicy().setHeightForWidth(True)
-        # self.setMinimumSize(1600, 900)
-
-        # Initialize the hbox to hold the save file info
-        save_file_hbox = QHBoxLayout()
-        save_file_hbox.addWidget(self.ln_save_file)
-        save_file_hbox.addWidget(self.btn_save_file)
-
-        # Initialize the form layout for the measuring parameters
-        measuring_param_form = QFormLayout()
-        measuring_param_form.addRow('Measuring Function:', self.combo_function)
-        measuring_param_form.addRow('Measuring Time:', self.combo_meas_time)
-        measuring_param_form.addRow('Data Averaging:', self.ln_data_averaging)
-        measuring_param_form.addRow('# of Data Points:', self.ln_num_pts)
-        measuring_param_form.addRow('Delay Between Steps:', self.ln_step_delay)
-        measuring_param_form.addRow('Impedance Range:', self.combo_range)
-        measuring_param_form.addRow('Signal Type:', self.combo_signal_type)
-        measuring_param_form.addRow('DC Bias Type:', self.combo_bias_type)
-        measuring_param_form.addRow('Sample Memo:', self.ln_notes)
-        measuring_param_form.addRow('Save File To:', save_file_hbox)
-
-        # Combine the form and hbox to finish the measuring parameter control layout
-        measuring_param_vbox = QVBoxLayout()
-        measuring_param_vbox.addLayout(measuring_param_form)
-        measuring_param_vbox.addLayout(save_file_hbox)
-
-        # Set the measuring param layout to the measuring param group box
-        self.gbox_meas_set_params.setLayout(measuring_param_vbox)
-        # self.measuring_param_box.setFixedWidth(config_width)
-
-        ###
-        # Initialize the measurement setup form for number of measurements
-        meas_setup_form = QFormLayout()
-        meas_setup_form.addRow('Number of Measurements:', self.ln_num_meas)
-
-        # Add the form and table to the vertical layout
-        meas_setup_vbox = QVBoxLayout()
-        meas_setup_vbox.addLayout(meas_setup_form)
-        meas_setup_vbox.addWidget(self.table_meas_setup)
-
-        # Set the layout of the measurement setup box
-        self.gbox_meas_setup.setLayout(meas_setup_vbox)
-        # self.meas_setup_box.setFixedWidth(config_width)
-
-        ###
-        # Initialize config layout
-        config_controls_vbox = QVBoxLayout()
-        config_controls_vbox.addWidget(self.gbox_meas_set_params)
-        config_controls_vbox.addWidget(self.gbox_meas_setup)
-        config_controls_vbox.addWidget(self.btn_setup_start_stop)
-        config_controls_vbox.setAlignment(self.btn_setup_start_stop, Qt.AlignHCenter)
-        self.tab_meas_setup.setLayout(config_controls_vbox)
-
-        ###
-        # Initialize the sublayouts for the running measurement
-        curr_meas_hbox = QHBoxLayout()
-        curr_meas_hbox.addWidget(QLabel('Start:'), 10)
-        curr_meas_hbox.addWidget(self.lbl_curr_meas_start, 10)
-        curr_meas_hbox.addWidget(QLabel('  |  '), 10)
-        curr_meas_hbox.addWidget(QLabel('Stop:'), 10)
-        curr_meas_hbox.addWidget(self.lbl_curr_meas_stop, 10)
-        curr_meas_hbox.addWidget(QLabel('  |  '), 10)
-        curr_meas_hbox.addWidget(QLabel('Oscillator:'), 10)
-        curr_meas_hbox.addWidget(self.lbl_curr_meas_osc, 10)
-        curr_meas_hbox.addWidget(QLabel('  |  '), 10)
-        curr_meas_hbox.addWidget(QLabel('Bias:'), 10)
-        curr_meas_hbox.addWidget(self.lbl_curr_meas_bias, 10)
-
-        curr_meas_groupbox = QGroupBox()
-        curr_meas_groupbox.setTitle('Current Measurement Parameters:')
-        curr_meas_groupbox.setLayout(curr_meas_hbox)
-
-        val1_vbox = QVBoxLayout()
-        val1_vbox.addWidget(self.lbl_val1, 10)
-        val1_vbox.addWidget(self.live_plot, 90)
-        self.gbox_val1.setLayout(val1_vbox)
-
-        val2_vbox = QVBoxLayout()
-        val2_vbox.addWidget(self.lbl_val2, 10)
-        val2_vbox.addWidget(self.val2_live_plot, 90)
-        self.gbox_val2.setLayout(val2_vbox)
-
-        # Combine val1 and val2 sublayouts
-        vals_hbox = QHBoxLayout()
-        vals_hbox.addWidget(self.gbox_val1, 50)
-        vals_hbox.addWidget(self.gbox_val2, 50)
-
-        # Initialize sublayouts for the progress information
-        progress_vbox = QVBoxLayout()
-        progress_vbox.addWidget(curr_meas_groupbox)
-        progress_vbox.addWidget(self.progress_bar_meas)
-
-        progress_hbox = QHBoxLayout()
-        progress_hbox.addWidget(self.btn_run_start_stop, 20)
-        progress_hbox.addLayout(progress_vbox, 70)
-        progress_hbox.addWidget(self.lbl_meas_progress, 10)
-        # progress_hbox.setAlignment(Qt.AlignBottom)
-
-        vals_vbox = QVBoxLayout()
-        vals_vbox.addLayout(vals_hbox)
-        vals_vbox.addLayout(progress_hbox)
-        self.tab_run_meas.setLayout(vals_vbox)
-
-        ###
-        # Set up overall widget layout
-        # overall_hbox = QHBoxLayout()
-        # overall_hbox.addLayout(config_controls_vbox)
-        # overall_hbox.addLayout(vals_vbox)
-        # self.setLayout(overall_hbox)
-        self.addTab(self.tab_meas_setup, 'Measurement Setup')
-        self.addTab(self.tab_run_meas, 'Run Measurement')
 
     def print_size(self):
         print('Measuring Params:', self.gbox_meas_set_params.size(), sep=' ')
@@ -374,7 +253,7 @@ class CapFreqWidget (QTabWidget):
         self.add_table_items()
 
     def update_live_readout(self, data: list):
-
+        self.lbl_curr_freq.setText(str(Static.si_prefix(data[0], 'Hz', 4)))
         self.lbl_val1.setText(str(Static.to_sigfigs(data[1], 6)))
         self.lbl_val2.setText(str(Static.to_sigfigs(data[2], 6)))
 
@@ -483,29 +362,36 @@ class CapFreqWidget (QTabWidget):
     # Fixme: I think this will mostly still work, but I need to set it up for the checking and unchecking rather than
     #  manual icon changes and connect/disconnect.
 
-    def change_start_button(self):
-        if self.btn_run_start_stop.text() == 'Run Measurement Set':
-            self.btn_run_start_stop.setText('Stop Measuring')
-            self.btn_run_start_stop.setIcon(self.stop_icon)
-            self.btn_run_start_stop.clicked.disconnect(self.start_measurement)
-            self.btn_run_start_stop.clicked.connect(self.halt_measurement)
-
-            self.btn_setup_start_stop.setText('Stop Measuring')
-            self.btn_setup_start_stop.setIcon(self.stop_icon)
-            self.btn_setup_start_stop.clicked.disconnect(self.start_measurement)
-            self.btn_setup_start_stop.clicked.connect(self.halt_measurement)
-        elif self.btn_run_start_stop.text() == 'Stop Measuring':
-            self.btn_run_start_stop.setText('Run Measurement Set')
-            self.btn_run_start_stop.setIcon(self.run_icon)
-
+    def on_start_stop_clicked(self):
+        # Get the sender
+        btn = self.sender()
+        # If the sender is not checked (trying to start the measurement)
+        if not btn.isChecked():
+            # Set both buttons to checked
+            self.btn_setup_start_stop.setChecked(True)
+            self.btn_run_start_stop.setChecked(True)
+            # Set the text on both buttons
+            self.btn_setup_start_stop.setText('Stop Measurements')
+            self.btn_run_start_stop.setText('Stop Measurements')
+            # Start the measurement
+            self.start_measurement()
+        # If the sender is checked (User has cancelled measurement)po0909o0poi9o
+        elif btn.isChecked():
+            # Set both buttons to unchecked
+            self.btn_setup_start_stop.setChecked(False)
+            self.btn_run_start_stop.setChecked(False)
+            # Set the text on both buttons
             self.btn_setup_start_stop.setText('Run Measurement Set')
-            self.btn_setup_start_stop.setIcon(self.run_icon)
+            self.btn_run_start_stop.setText('Run Measurement Set')
+            # Start the measurement
+            self.halt_measurement()
 
     def halt_measurement(self):
         self.stop_measurement_worker.emit()
 
     def start_measurement(self):
         self.set_save_file_path_by_line()
+        print(self.save_file_path)
         if os.path.isfile(self.save_file_path):
             overwrite = QMessageBox.warning(self, 'File already exists',
                                             'This data file already exists. Would you like to overwrite?',
@@ -520,7 +406,7 @@ class CapFreqWidget (QTabWidget):
                                                  QMessageBox.Ok, QMessageBox.Ok)
                 if cancel == QMessageBox.Ok:
                     return
-        elif self.save_file_path == os.path.join(os.getenv('USERPROFILE'), 'Desktop'):
+        elif self.save_file_path == os.path.join(os.getenv('USERPROFILE'), 'Desktop') or self.save_file_path == '':
             no_file_selected = QMessageBox.warning(self, 'No File Selected',
                                                    'No file has been selected for writing data, '
                                                    'please pick a file to save to.',
@@ -537,9 +423,6 @@ class CapFreqWidget (QTabWidget):
                     return
         # Fixme: maybe add more file save path checking i.e. blank or default location.
 
-        # FIXME: Make the measurement start button turn into a stop button (will require a new signal and code
-        #        in the measurement worker). Should it just dump the data?
-        self.change_start_button()
         self.setCurrentWidget(self.tab_run_meas)
         # Set up the progress bar for this measurement
         self.progress_bar_meas.setMinimum(0)
@@ -552,7 +435,6 @@ class CapFreqWidget (QTabWidget):
         # Enable live plotting of values, clear previous data
         self.enable_live_plots(True)
         self.live_plot.clear_data()
-        self.val2_live_plot.clear_data()
 
         # Emit signal to start the worker measuring
         self.measuring_thread.start()
@@ -570,15 +452,13 @@ class CapFreqWidget (QTabWidget):
         self.return_to_defaults()
 
         print('Measurement finished')
-        self.change_start_button()
-        try:
-            self.btn_run_start_stop.clicked.connect(self.start_measurement)
-            self.btn_run_start_stop.clicked.disconnect(self.halt_measurement)
-
-            self.btn_setup_start_stop.clicked.connect(self.start_measurement)
-            self.btn_setup_start_stop.clicked.disconnect(self.halt_measurement)
-        except TypeError:
-            print('changing connections failed')
+        # Change start/stop button back to start
+        # Set both buttons to unchecked
+        self.btn_setup_start_stop.setChecked(False)
+        self.btn_run_start_stop.setChecked(False)
+        # Set the text on both buttons
+        self.btn_setup_start_stop.setText('Start Measurements')
+        self.btn_run_start_stop.setText('Start Measurements')
 
     def return_to_defaults(self):
         self.lcr.dc_bias_level('voltage', 0)
@@ -597,14 +477,12 @@ class CapFreqWidget (QTabWidget):
                 ram_csv.close()
 
     def plot_new_points(self, data: list):
-        self.live_plot.add_data([data[0], data[1]])
-        self.val2_live_plot.add_data([data[0], data[2]])
+        self.live_plot.add_data([data[0], data[1], data[2]])
 
     def update_val_labels(self):
         val_params = Const.PARAMETERS_BY_FUNC[Const.FUNC_DICT[self.lcr_function]]
-        self.live_plot.update_plot_labels(['Frequency [Hz]', val_params[0]])
+        self.live_plot.update_plot_labels(['Frequency [Hz]', val_params[0], val_params[1]])
         self.gbox_val1.setTitle(val_params[0])
-        self.val2_live_plot.update_plot_labels(['Frequency [Hz]', val_params[1]])
         self.gbox_val2.setTitle(val_params[1])
 
     def update_measurement_progress(self, indices: list):
@@ -682,7 +560,6 @@ class MeasureWorkerObj (QObject):
 
             # Start a new data line in each plot
             self.parent.live_plot.live_plot.start_new_line()
-            self.parent.val2_live_plot.live_plot.start_new_line()
 
             for step_idx in range(0, len(freq_steps)):
                 # Set the lcr to the correct frequency

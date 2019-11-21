@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1734</width>
-    <height>891</height>
+    <height>1019</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -17,15 +17,27 @@
    <enum>QTabWidget::West</enum>
   </property>
   <property name="currentIndex">
-   <number>1</number>
+   <number>0</number>
   </property>
   <widget class="QWidget" name="tab_meas_setup">
    <attribute name="title">
     <string>Measurement Setup</string>
    </attribute>
    <layout class="QVBoxLayout" name="verticalLayout_2">
+    <property name="leftMargin">
+     <number>30</number>
+    </property>
+    <property name="topMargin">
+     <number>30</number>
+    </property>
+    <property name="rightMargin">
+     <number>30</number>
+    </property>
+    <property name="bottomMargin">
+     <number>30</number>
+    </property>
     <item>
-     <widget class="QGroupBox" name="gbox_measure_set_params">
+     <widget class="QGroupBox" name="gbox_meas_set_params">
       <property name="title">
        <string>Measurement Set Parameters:</string>
       </property>
@@ -145,7 +157,7 @@
      </widget>
     </item>
     <item>
-     <widget class="QGroupBox" name="gobx_measurement_setup">
+     <widget class="QGroupBox" name="gbox_meas_setup">
       <property name="title">
        <string>Measurement(s) Setup:</string>
       </property>
@@ -153,14 +165,14 @@
        <item>
         <layout class="QFormLayout" name="formLayout">
          <item row="0" column="0">
-          <widget class="QLabel" name="lbl_num_measurements">
+          <widget class="QLabel" name="lbl_num_meas">
            <property name="text">
             <string>Number of Measurements: </string>
            </property>
           </widget>
          </item>
          <item row="0" column="1">
-          <widget class="QLineEdit" name="ln_num_measurements"/>
+          <widget class="QLineEdit" name="ln_num_meas"/>
          </item>
         </layout>
        </item>
@@ -186,7 +198,7 @@
        </spacer>
       </item>
       <item>
-       <widget class="QPushButton" name="btn_start_stop_setup">
+       <widget class="QPushButton" name="btn_setup_start_stop">
         <property name="font">
          <font>
           <pointsize>12</pointsize>
@@ -230,13 +242,25 @@
     <string>Run Mreasurement</string>
    </attribute>
    <layout class="QVBoxLayout" name="verticalLayout_5">
+    <property name="leftMargin">
+     <number>30</number>
+    </property>
+    <property name="topMargin">
+     <number>30</number>
+    </property>
+    <property name="rightMargin">
+     <number>30</number>
+    </property>
+    <property name="bottomMargin">
+     <number>30</number>
+    </property>
     <item>
      <layout class="QHBoxLayout" name="horizontalLayout_8" stretch="1,5">
       <property name="spacing">
        <number>12</number>
       </property>
       <item>
-       <layout class="QVBoxLayout" name="verticalLayout_3" stretch="5,1,5,1,5">
+       <layout class="QVBoxLayout" name="verticalLayout_3" stretch="5,2,5,2,5,2">
         <item>
          <widget class="QGroupBox" name="gbox_curr_freq">
           <property name="title">
@@ -377,6 +401,29 @@
           </layout>
          </widget>
         </item>
+        <item>
+         <widget class="QPushButton" name="btn_run_start_stop">
+          <property name="font">
+           <font>
+            <pointsize>12</pointsize>
+           </font>
+          </property>
+          <property name="text">
+           <string>Run Measurement Set</string>
+          </property>
+          <property name="icon">
+           <iconset>
+            <normaloff>../img/run.svg</normaloff>
+            <normalon>../img/stop.svg</normalon>../img/run.svg</iconset>
+          </property>
+          <property name="iconSize">
+           <size>
+            <width>50</width>
+            <height>50</height>
+           </size>
+          </property>
+         </widget>
+        </item>
        </layout>
       </item>
       <item>
@@ -392,30 +439,7 @@
      </layout>
     </item>
     <item>
-     <layout class="QHBoxLayout" name="horizontalLayout_5" stretch="2,7,1">
-      <item>
-       <widget class="QPushButton" name="btn_start_stop_run">
-        <property name="font">
-         <font>
-          <pointsize>12</pointsize>
-         </font>
-        </property>
-        <property name="text">
-         <string>Run Measurement Set</string>
-        </property>
-        <property name="icon">
-         <iconset>
-          <normaloff>../img/run.svg</normaloff>
-          <normalon>../img/stop.svg</normalon>../img/run.svg</iconset>
-        </property>
-        <property name="iconSize">
-         <size>
-          <width>50</width>
-          <height>50</height>
-         </size>
-        </property>
-       </widget>
-      </item>
+     <layout class="QHBoxLayout" name="horizontalLayout_5" stretch="7,1">
       <item>
        <layout class="QVBoxLayout" name="verticalLayout_4">
         <item>
@@ -434,7 +458,7 @@
            <item>
             <widget class="QLabel" name="lbl_curr_meas_start">
              <property name="text">
-              <string>DATA</string>
+              <string>- - - -</string>
              </property>
             </widget>
            </item>
@@ -455,7 +479,7 @@
            <item>
             <widget class="QLabel" name="lbl_curr_meas_stop">
              <property name="text">
-              <string>DATA</string>
+              <string>- - - -</string>
              </property>
             </widget>
            </item>
@@ -476,7 +500,7 @@
            <item>
             <widget class="QLabel" name="lbl_curr_meas_osc">
              <property name="text">
-              <string>DATA</string>
+              <string>- - - -</string>
              </property>
             </widget>
            </item>
@@ -497,7 +521,7 @@
            <item>
             <widget class="QLabel" name="lbl_curr_meas_bias">
              <property name="text">
-              <string>DATA</string>
+              <string>- - - -</string>
              </property>
             </widget>
            </item>
@@ -505,9 +529,9 @@
          </widget>
         </item>
         <item>
-         <widget class="QProgressBar" name="progressBar">
+         <widget class="QProgressBar" name="progress_bar_meas">
           <property name="value">
-           <number>24</number>
+           <number>0</number>
           </property>
          </widget>
         </item>
@@ -516,8 +540,11 @@
       <item>
        <widget class="QLabel" name="lbl_meas_progress">
         <property name="text">
-         <string>Progress in
- measurement</string>
+         <string>'Measurement 0/0,
+Step 0/0'</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignCenter</set>
         </property>
        </widget>
       </item>

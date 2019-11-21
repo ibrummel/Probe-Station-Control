@@ -12,7 +12,9 @@ from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavToolBa
 
 
 class LivePlotWidget(QFrame):
-    def __init__(self, parent=None, dual_y=False, axes_labels=['x', 'y'], lead=True, lead_length=3, head=True, line_color='blue', head_color='red', draw_interval=200):
+    def __init__(self, parent=None, dual_y=True, axes_labels=['x', 'y', 'y2'], lead=[True, True], lead_length=[3, 3],
+                 head=[True, True], line_color=['#0173b2', '#e74c3c'],
+                 head_color=['#1f78b4', '#ad1f1f'], draw_interval=200):
         super().__init__(parent)
 
         # Create child widgets
@@ -70,7 +72,7 @@ class LivePlotCanvas(FigCanvas, TimedAnimation):
         if lead:
             self.lines['lead'] = Line2D([], [], color=head_color[0], linewidth=self.line_width)
         if head:
-            self.lines['head'] = Line2D([], [], color=head_color[0], marker='*', markeredgecolor=head_color)
+            self.lines['head'] = Line2D([], [], color=head_color[0], marker='*', markeredgecolor=head_color[0])
 
 
         # Create a list to hold old lines (used to store data when we want a color change
@@ -245,8 +247,8 @@ class LivePlotCanvas(FigCanvas, TimedAnimation):
 
         try:
             # If there is a lead line, plot lead_length of the data as red
-            self.lines['lead'].set_data(self.x[-self.lead_length:],
-                                        self.y1[-self.lead_length:])
+            self.lines['lead'].set_data(self.x[-self.lead_length[0]:],
+                                        self.y1[-self.lead_length[0]:])
         except KeyError:
             pass
         except IndexError:

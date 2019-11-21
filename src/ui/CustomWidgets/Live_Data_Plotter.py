@@ -66,7 +66,7 @@ class LivePlotCanvas(FigCanvas, TimedAnimation):
         if lead:
             self.lines['lead'] = Line2D([], [], color=head_color, linewidth=2)
         if head:
-            self.lines['head'] = Line2D([], [], color=head_color, marker='o', markeredgecolor=head_color)
+            self.lines['head'] = Line2D([], [], color=head_color, marker='$\smiley$', markeredgecolor=head_color)
 
         # Create a list to hold old lines (used to store data when we want a color change
         self.old_lines = []

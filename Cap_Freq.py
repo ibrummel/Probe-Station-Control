@@ -36,6 +36,7 @@ class CapFreqWidget (QTabWidget):
         self.bias_type = 'voltage'
         self.num_pts = 50
         self.step_delay = 0.0
+        self.enable_live_plots = False
 
         self.num_measurements = 1
         self.tests_df = pd.DataFrame()
@@ -106,7 +107,7 @@ class CapFreqWidget (QTabWidget):
 
         # Create a thread to use for measuring data
         self.measuring_thread = QThread()
-        self.measuring_worker = MeasureWorkerObj(self, self.lcr)
+        self.measuring_worker = MeasureWorkerObj(self)
         self.measuring_worker.moveToThread(self.measuring_thread)
         self.lcr.moveToThread(self.measuring_thread)
 
@@ -148,11 +149,7 @@ class CapFreqWidget (QTabWidget):
         self.measuring_worker.freq_step_finished.connect(self.update_measurement_progress)
         self.measuring_thread.finished.connect(self.end_measurement)
         self.measuring_thread.started.connect(self.measuring_worker.measure)
-        # self.lcr.new_data.connect(self.test_func)
-
-    def test_func(self):
-        print('New Data')
-        # self.lcr.new_data.disconnect(self.test_func)
+        self.lcr.new_data.connect(self.plot_new_points)
 
     def init_control_setup(self):
         # Set up initial table headers and size
@@ -342,20 +339,6 @@ class CapFreqWidget (QTabWidget):
         except TypeError:
             print('Unable to disconnect or reconnect live value timer correctly')
 
-    def enable_live_plots(self, enable: bool):
-        if enable:
-            try:
-                print('Live plots enabled')
-                self.lcr.new_data.connect(self.plot_new_points)
-            except TypeError:
-                print('Failed to enable live plotting')
-        elif not enable:
-            try:
-                print('Live plots disabled')
-                self.lcr.new_data.disconnect(self.plot_new_points)
-            except TypeError:
-                print('Failed to disable live plotting')
-
     def setup_lcr(self):
         self.lcr.function(self.lcr_function)
         self.lcr.impedance_range(self.range)
@@ -443,7 +426,7 @@ class CapFreqWidget (QTabWidget):
         self.enable_live_val_timer(False)
         # Enable live plotting of values, clear previous data
         self.live_plot.clear_data()
-        self.enable_live_plots(True)
+        self.enable_live_plots = True
 
         # Emit signal to start the worker measuring
         self.measuring_thread.start()
@@ -457,7 +440,7 @@ class CapFreqWidget (QTabWidget):
         # Set live vals to update periodically
         self.enable_live_val_timer(True)
         # Disable live plotting of values
-        self.enable_live_plots(False)
+        self.enable_live_plots =  False
         self.return_to_defaults()
 
         print('Measurement finished')
@@ -486,7 +469,8 @@ class CapFreqWidget (QTabWidget):
                 ram_csv.close()
 
     def plot_new_points(self, data: list):
-        self.live_plot.add_data([data[0], data[1], data[2]])
+        if self.enable_live_plots:
+            self.live_plot.add_data([data[0], data[1], data[2]])
 
     def update_val_labels(self):
         val_params = Const.PARAMETERS_BY_FUNC[Const.FUNC_DICT[self.lcr_function]]
@@ -506,7 +490,7 @@ class MeasureWorkerObj (QObject):
     measurement_finished = pyqtSignal()
     freq_step_finished = pyqtSignal(list)
 
-    def __init__(self, parent: CapFreqWidget, lcr: AgilentE4980A):
+    def __init__(self, parent: CapFreqWidget):
         super().__init__()
         self.parent = parent
         self.stop = False

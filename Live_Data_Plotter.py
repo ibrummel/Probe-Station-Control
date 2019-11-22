@@ -211,5 +211,6 @@ class LivePlotCanvas(FigCanvas):
         self.axes2.relim()
         self.axes2.autoscale_view(True, True, True)
 
+        self.change_axes_labels(self.axes_labels)
         # Draw the plot with new stuff
         self.draw()

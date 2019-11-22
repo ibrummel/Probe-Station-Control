@@ -12,9 +12,9 @@ import pandas as pd
 from datetime import datetime
 import numpy as np
 from Live_Data_Plotter import LivePlotWidget
-#from Agilent_E4980A import AgilentE4980A
+from Agilent_E4980A import AgilentE4980A
 # Can be used to emulate the LCR without connection data will be garbage (random numbers)
-from fake_E4980 import AgilentE4980A
+#from fake_E4980 import AgilentE4980A
 import Agilent_E4980A_Constants as Const
 from File_Print_Headers import *
 import Static_Functions as Static
@@ -332,13 +332,17 @@ class CapFreqWidget (QTabWidget):
         self.gbox_meas_set_params.setEnabled(enable)
 
     def enable_live_val_timer(self, enable: bool):
-        try:
-            if enable:
+        if enable:
+            try:
                 self.live_readout_timer.timeout.connect(self.get_new_data)
-            elif not enable:
+            except TypeError:
+                print('Unable to reconnect live value timer correctly')
+        elif not enable:
+            try:
                 self.live_readout_timer.timeout.disconnect(self.get_new_data)
-        except TypeError:
-            print('Unable to disconnect or reconnect live value timer correctly')
+            except TypeError:
+                print('Unable to disconnect live value timer correctly')
+        
 
     def setup_lcr(self):
         self.lcr.function(self.lcr_function)

@@ -38,6 +38,7 @@ class CapFreqWidget (QTabWidget):
         self.num_pts = 50
         self.step_delay = 0.0
         self.enable_live_plots = False
+        self.enable_live_vals = True
 
         self.num_measurements = 1
         self.tests_df = pd.DataFrame()

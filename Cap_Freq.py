@@ -180,7 +180,8 @@ class CapFreqWidget (QTabWidget):
     def get_new_data(self):
         # Helper function to get new data on timer timeout. Was failing when called directly, could be something about
         #  having a return value?
-        self.lcr.get_data()
+        if self.enable_live_vals:
+            self.lcr.get_data()
 
     def change_function(self):
         self.lcr_function = self.combo_function.currentText()
@@ -331,19 +332,6 @@ class CapFreqWidget (QTabWidget):
         self.gbox_meas_setup.setEnabled(enable)
         self.gbox_meas_set_params.setEnabled(enable)
 
-    def enable_live_val_timer(self, enable: bool):
-        if enable:
-            try:
-                self.live_readout_timer.timeout.connect(self.get_new_data)
-            except TypeError:
-                print('Unable to reconnect live value timer correctly')
-        elif not enable:
-            try:
-                self.live_readout_timer.timeout.disconnect(self.get_new_data)
-            except TypeError:
-                print('Unable to disconnect live value timer correctly')
-        
-
     def setup_lcr(self):
         self.lcr.function(self.lcr_function)
         self.lcr.impedance_range(self.range)
@@ -364,7 +352,7 @@ class CapFreqWidget (QTabWidget):
             self.btn_setup_start_stop.setChecked(True)
             self.btn_run_start_stop.setChecked(True)
             # Pause the update timer
-            self.enable_live_val_timer(False)
+            self.enable_live_vals = False
             # Set the text on both buttons
             self.btn_setup_start_stop.setText('Stop Measurements')
             self.btn_run_start_stop.setText('Stop Measurements')
@@ -376,7 +364,7 @@ class CapFreqWidget (QTabWidget):
             self.btn_setup_start_stop.setChecked(False)
             self.btn_run_start_stop.setChecked(False)
             # Enable the update timer
-            self.enable_live_val_timer(True)
+            self.enable_live_vals = True
             # Set the text on both buttons
             self.btn_setup_start_stop.setText('Run Measurement Set')
             self.btn_run_start_stop.setText('Run Measurement Set')
@@ -428,7 +416,7 @@ class CapFreqWidget (QTabWidget):
         # Keep the user from changing values in the controls
         self.enable_controls(False)
         # Set live vals to update to last read value only
-        self.enable_live_val_timer(False)
+        self.enable_live_vals = False
         # Enable live plotting of values, clear previous data
         self.live_plot.clear_data()
         self.enable_live_plots = True
@@ -443,7 +431,7 @@ class CapFreqWidget (QTabWidget):
         # Enable the user to change controls
         self.enable_controls(True)
         # Set live vals to update periodically
-        self.enable_live_val_timer(True)
+        self.enable_live_vals = True
         # Disable live plotting of values
         self.enable_live_plots =  False
         self.return_to_defaults()

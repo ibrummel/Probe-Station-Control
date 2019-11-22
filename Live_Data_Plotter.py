@@ -291,7 +291,7 @@ class LivePlotCanvas(FigCanvas, TimedAnimation):
 
         # Relimit the plot to keep data in view
         self.axes.relim()
-        self.axes.autoscale_view()
+        self.axes.autoscale()
 
         # Handle the secondary axis
         if self.dual_y:
@@ -316,7 +316,7 @@ class LivePlotCanvas(FigCanvas, TimedAnimation):
 
             # Relimit the plot to keep data in view
             self.axes2.relim()
-            self.axes2.autoscale_view()
+            self.axes2.autoscale()
 
         # Add each relevant line to the drawn artists
         self._drawn_artists = [line for key, line in self.lines.items()]

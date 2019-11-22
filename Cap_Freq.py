@@ -489,9 +489,9 @@ class CapFreqWidget (QTabWidget):
 
         # Handle special cases for the live plot
         if self.lcr_function == 'Z-Thd':
-            self.live_plot.live_plot.set_dual_y(False, ["Z' (Ohm)", "-Z'' (Ohm)"])
+            self.live_plot.canvas.set_dual_y(False, ["Z' (Ohm)", "-Z'' (Ohm)"])
         else:
-            self.live_plot.live_plot.set_dual_y(True, ['Frequency [Hz]', val_params[0], val_params[1]])
+            self.live_plot.canvas.set_dual_y(True, ['Frequency [Hz]', val_params[0], val_params[1]])
 
         # Set the live value readout names regardless
         self.gbox_val1.setTitle(val_params[0])
@@ -571,7 +571,7 @@ class MeasureWorkerObj (QObject):
             freq_steps = Static.generate_log_steps(int(start), int(stop), int(self.parent.num_pts))
 
             # Start a new data line in each plot
-            self.parent.live_plot.live_plot.start_new_line()
+            self.parent.live_plot.canvas.start_new_line()
 
             for step_idx in range(0, len(freq_steps)):
                 # Set the lcr to the correct frequency

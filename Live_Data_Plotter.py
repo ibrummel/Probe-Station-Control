@@ -54,64 +54,75 @@ class LivePlotCanvas(FigCanvas, TimedAnimation):
     def __init__(self, dual_y: bool, axes_labels: list, lead: list, lead_length: list, head: list, line_color: list,
                  head_color: list, draw_interval: list):
 
+        # Save init values to class variables
+        self.dual_y = dual_y
+        self.axes_labels = axes_labels
+        self.lead = lead
         self.lead_length = lead_length
         for idx, value in enumerate(lead_length):
             self.lead_length[idx] = int(value)
+        self.head = head
+        self.line_color = line_color
+        self.head_color = head_color
         self.line_width = 2
+
+        # Create figure and first set of axes
+        self.figure = Figure(figsize=(5, 5))
+        self.axes = self.figure.add_subplot(111)
+        if dual_y:
+            self.axes2 = self.axes.twinx()
 
         # Plot Data
         self.x = [0]
         self.y1 = [0]
+        self.y2 = [0]
 
-        # Plot figure
-        self.figure = Figure(figsize=(5, 5))
-        self.axes = self.figure.add_subplot(111)
-
-        # Create the line dictionary for the primary axes
-        self.lines = {'line': Line2D([], [], color=line_color[0])}
-        if lead:
-            self.lines['lead'] = Line2D([], [], color=head_color[0], linewidth=self.line_width)
-        if head:
-            self.lines['head'] = Line2D([], [], color=head_color[0], marker='*', markeredgecolor=head_color[0])
-
-
+        # Create empty dictionaries of main line parts, filled in init_axes
+        self.lines = {}
+        self.lines2 = {}
         # Create a list to hold old lines (used to store data when we want a color change
         self.old_lines = []
+        self.old_lines2 = []
+
+        self.init_axes()
+
+        FigCanvas.__init__(self, self.figure)
+        TimedAnimation.__init__(self, self.figure, interval=draw_interval)
+
+    def init_axes(self):
+        # Create the line dictionary for the primary axes
+        self.lines = {'line': Line2D([], [], color=self.line_color[0])}
+        if self.lead[0]:
+            self.lines['lead'] = Line2D([], [], color=self.head_color[0], linewidth=self.line_width)
+        if self.head[0]:
+            self.lines['head'] = Line2D([], [], color=self.head_color[0], marker='*', markeredgecolor=self.head_color[0])
 
         # Add the lines to the graph
         for key, line in self.lines.items():
             self.axes.add_line(line)
 
         # If a dual y is called for, setup another spot for data and the second axes
-        self.dual_y = dual_y
-        if dual_y:
-            self.axes2 = self.axes.twinx()
-            self.y2 = [0]
+        if self.dual_y:
+            if not self.axes2:
+                self.axes2 = self.axes.twinx()
 
             # Create the line dictionary for the secondary axes
-            self.lines2 = {'line': Line2D([], [], color=line_color[1])}
-            if lead:
-                self.lines2['lead'] = Line2D([], [], color=head_color[1], linewidth=self.line_width)
-            if head:
-                self.lines2['head'] = Line2D([], [], color=head_color[1], marker='*', markeredgecolor=head_color[1])
-
-            self.old_lines2 = []
+            self.lines2 = {'line': Line2D([], [], color=self.line_color[1])}
+            if self.lead[1]:
+                self.lines2['lead'] = Line2D([], [], color=self.head_color[1], linewidth=self.line_width)
+            if self.head[1]:
+                self.lines2['head'] = Line2D([], [], color=self.head_color[1], marker='*', markeredgecolor=self.head_color[1])
 
             # Add the lines for the second set of axes to the plot
             for key, line in self.lines2.items():
                 self.axes2.add_line(line)
 
             # Set axes to match the colors of their main lines if we have dual y otherwise primary will stay black
-            self.axes.tick_params(axis='y', labelcolor=line_color[0])
-            self.axes2.tick_params(axis='y', labelcolor=line_color[1])
-
+            self.axes.tick_params(axis='y', labelcolor=self.line_color[0])
+            self.axes2.tick_params(axis='y', labelcolor=self.line_color[1])
 
         # Add labels
-        self.axes_labels = axes_labels
-        self.change_axes_labels(axes_labels)
-
-        FigCanvas.__init__(self, self.figure)
-        TimedAnimation.__init__(self, self.figure, interval=draw_interval)
+        self.change_axes_labels(self.axes_labels)
 
     def add_data(self, point: list):
         self.x.append(point[0])
@@ -119,9 +130,25 @@ class LivePlotCanvas(FigCanvas, TimedAnimation):
         if self.dual_y:
             self.y2.append(point[2])
 
+    def set_dual_y(self, enable: bool, axes_labels: list):
+        self.dual_y = enable
+        self.axes_labels = axes_labels
+        self.clear_data()
+        if enable:
+            self.axes2.set_frame_on(True)
+            self.axes2.set_visible(True)
+            self.init_axes()
+        elif not enable:
+            # Delete the stuff from the second y axis
+            self.axes2.clear()
+            self.axes2.set_frame_on(False)
+            self.axes2.set_visible(False)
+            self.lines2.clear()
+            self.old_lines2.clear()
+            self.init_axes()
+
     def set_draw_interval(self, draw_interval: int):
         TimedAnimation._interval = draw_interval
-        # Fixme: I hope this works ok.
 
     def set_head(self, head: list, head_color: list):
         if head[0]:

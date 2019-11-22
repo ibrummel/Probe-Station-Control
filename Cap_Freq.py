@@ -10,6 +10,7 @@ from io import StringIO
 from time import sleep
 import pandas as pd
 from datetime import datetime
+import numpy as np
 from Live_Data_Plotter import LivePlotWidget
 #from Agilent_E4980A import AgilentE4980A
 # Can be used to emulate the LCR without connection data will be garbage (random numbers)
@@ -470,11 +471,25 @@ class CapFreqWidget (QTabWidget):
 
     def plot_new_points(self, data: list):
         if self.enable_live_plots:
-            self.live_plot.add_data([data[0], data[1], data[2]])
+            # Handle data that is fed to the plot for special cases.
+            if self.lcr_function == 'Z-Thd':
+                zreal = data[1] * np.cos(np.deg2rad(data[2]))
+                zimag = data[1] * np.sin(np.deg2rad(data[2]))
+                self.live_plot.add_data([zreal, -1 * zimag])
+            else:
+                self.live_plot.add_data([data[0], data[1], data[2]])
 
     def update_val_labels(self):
+        # Get the two parameters that are being measured/output
         val_params = Const.PARAMETERS_BY_FUNC[Const.FUNC_DICT[self.lcr_function]]
-        self.live_plot.update_plot_labels(['Frequency [Hz]', val_params[0], val_params[1]])
+
+        # Handle special cases for the live plot
+        if self.lcr_function == 'Z-Thd':
+            self.live_plot.live_plot.set_dual_y(False, ["Z' (Ohm)", "-Z'' (Ohm)"])
+        else:
+            self.live_plot.live_plot.set_dual_y(True, ['Frequency [Hz]', val_params[0], val_params[1]])
+
+        # Set the live value readout names regardless
         self.gbox_val1.setTitle(val_params[0])
         self.gbox_val2.setTitle(val_params[1])
 

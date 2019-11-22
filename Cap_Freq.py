@@ -11,9 +11,9 @@ from time import sleep
 import pandas as pd
 from datetime import datetime
 from Live_Data_Plotter import LivePlotWidget
-from Agilent_E4980A import AgilentE4980A
+#from Agilent_E4980A import AgilentE4980A
 # Can be used to emulate the LCR without connection data will be garbage (random numbers)
-# from fake_E4980 import AgilentE4980A
+from fake_E4980 import AgilentE4980A
 import Agilent_E4980A_Constants as Const
 from File_Print_Headers import *
 import Static_Functions as Static
@@ -46,12 +46,6 @@ class CapFreqWidget (QTabWidget):
         # Tiny bit of initial instrument setup
         self.lcr.dc_bias_state('on')
         self.return_to_defaults()
-
-        # Create a thread to use for measuring data
-        self.measuring_thread = QThread()
-        self.measuring_worker = MeasureWorkerObj(self, self.lcr)
-        self.measuring_worker.moveToThread(self.measuring_thread)
-        self.lcr.moveToThread(self.measuring_thread)
 
         # Begin ui setup by importing the ui file
         self.ui = uic.loadUi('./src/ui/cap_freq_tabs.ui', self)
@@ -110,6 +104,12 @@ class CapFreqWidget (QTabWidget):
 
         self.live_plot = self.findChild(LivePlotWidget, 'live_plot')
 
+        # Create a thread to use for measuring data
+        self.measuring_thread = QThread()
+        self.measuring_worker = MeasureWorkerObj(self, self.lcr)
+        self.measuring_worker.moveToThread(self.measuring_thread)
+        self.lcr.moveToThread(self.measuring_thread)
+
         # Gets data and emits a signal to update live value readouts
         self.lcr.get_data()
         self.live_readout_timer = QTimer()
@@ -148,6 +148,11 @@ class CapFreqWidget (QTabWidget):
         self.measuring_worker.freq_step_finished.connect(self.update_measurement_progress)
         self.measuring_thread.finished.connect(self.end_measurement)
         self.measuring_thread.started.connect(self.measuring_worker.measure)
+        # self.lcr.new_data.connect(self.test_func)
+
+    def test_func(self):
+        print('New Data')
+        # self.lcr.new_data.disconnect(self.test_func)
 
     def init_control_setup(self):
         # Set up initial table headers and size
@@ -235,7 +240,8 @@ class CapFreqWidget (QTabWidget):
         self.ln_save_file.setText(self.save_file_path)
 
     def set_save_file_path_by_line(self):
-        self.save_file_path = self.ln_save_file.text()
+        if self.ln_save_file.text() != '':
+            self.save_file_path = self.ln_save_file.text()
 
     def change_num_measurements(self):
         num = self.num_measurements
@@ -339,14 +345,16 @@ class CapFreqWidget (QTabWidget):
     def enable_live_plots(self, enable: bool):
         if enable:
             try:
+                print('Live plots enabled')
                 self.lcr.new_data.connect(self.plot_new_points)
             except TypeError:
-                pass
+                print('Failed to enable live plotting')
         elif not enable:
             try:
+                print('Live plots disabled')
                 self.lcr.new_data.disconnect(self.plot_new_points)
             except TypeError:
-                pass
+                print('Failed to disable live plotting')
 
     def setup_lcr(self):
         self.lcr.function(self.lcr_function)
@@ -361,21 +369,26 @@ class CapFreqWidget (QTabWidget):
     def on_start_stop_clicked(self):
         # Get the sender
         btn = self.sender()
+        print(btn)
         # If the sender is not checked (trying to start the measurement)
-        if not btn.isChecked():
+        if btn.isChecked():
             # Set both buttons to checked
             self.btn_setup_start_stop.setChecked(True)
             self.btn_run_start_stop.setChecked(True)
+            # Pause the update timer
+            self.enable_live_val_timer(False)
             # Set the text on both buttons
             self.btn_setup_start_stop.setText('Stop Measurements')
             self.btn_run_start_stop.setText('Stop Measurements')
             # Start the measurement
             self.start_measurement()
         # If the sender is checked (User has cancelled measurement)po0909o0poi9o
-        elif btn.isChecked():
+        elif not btn.isChecked():
             # Set both buttons to unchecked
             self.btn_setup_start_stop.setChecked(False)
             self.btn_run_start_stop.setChecked(False)
+            # Enable the update timer
+            self.enable_live_val_timer(True)
             # Set the text on both buttons
             self.btn_setup_start_stop.setText('Run Measurement Set')
             self.btn_run_start_stop.setText('Run Measurement Set')
@@ -429,8 +442,8 @@ class CapFreqWidget (QTabWidget):
         # Set live vals to update to last read value only
         self.enable_live_val_timer(False)
         # Enable live plotting of values, clear previous data
-        self.enable_live_plots(True)
         self.live_plot.clear_data()
+        self.enable_live_plots(True)
 
         # Emit signal to start the worker measuring
         self.measuring_thread.start()

@@ -14,9 +14,8 @@ class CapFreqTempWidget(CapFreqWidget):
 
     def __init__(self, lcr: AgilentE4980A, sun: SunEC1xChamber):
 
-        super().__init__(lcr, './src/ui/cap_freq_temp_tabs.ui')
-
         self.sun = sun
+        super().__init__(lcr, './src/ui/cap_freq_temp_tabs.ui')
         self.dwell = 10
         self.ramp = 5
         self.stab_int = 5
@@ -63,11 +62,10 @@ class CapFreqTempWidget(CapFreqWidget):
         super().update_live_readout(data)
         # Going to try directly getting the temperature in this function,
         #  should keep compatibility simple.
-        print(self.sun)
         if self.radio_chamber_tc.isChecked():
-            self.lbl_curr_temp.setText(self.sun.get_temp())
+            self.lbl_curr_temp.setText(str(self.sun.get_temp()))
         elif self.radio_user_tc.isChecked():
-            self.lbl_curr_temp.setText(self.sun.get_user_temp())
+            self.lbl_curr_temp.setText(str(self.sun.get_user_temp()))
 
     def get_header_vars(self, index, row):
         header_vars = super().get_header_vars(index, row)

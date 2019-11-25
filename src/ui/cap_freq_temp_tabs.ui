@@ -17,144 +17,201 @@
    <enum>QTabWidget::West</enum>
   </property>
   <property name="currentIndex">
-   <number>1</number>
+   <number>0</number>
   </property>
   <widget class="QWidget" name="tab_meas_setup">
    <attribute name="title">
     <string>Measurement Setup</string>
    </attribute>
    <layout class="QVBoxLayout" name="verticalLayout_2">
-    <property name="leftMargin">
-     <number>30</number>
-    </property>
-    <property name="topMargin">
-     <number>30</number>
-    </property>
-    <property name="rightMargin">
-     <number>30</number>
-    </property>
-    <property name="bottomMargin">
-     <number>30</number>
-    </property>
     <item>
-     <widget class="QGroupBox" name="gbox_meas_set_params">
-      <property name="title">
-       <string>Measurement Set Parameters:</string>
-      </property>
-      <layout class="QFormLayout" name="formLayout_2">
-       <item row="0" column="0">
-        <widget class="QLabel" name="lbl_function">
-         <property name="text">
-          <string>LCR Function:</string>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="1">
-        <widget class="QComboBox" name="combo_function"/>
-       </item>
-       <item row="1" column="0">
-        <widget class="QLabel" name="lbl_meas_time">
-         <property name="text">
-          <string>Measuring Time:</string>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="0">
-        <widget class="QLabel" name="lbl_data_averaging">
-         <property name="text">
-          <string>Data Averaging:</string>
-         </property>
-        </widget>
-       </item>
-       <item row="3" column="0">
-        <widget class="QLabel" name="lbl_num_pts">
-         <property name="text">
-          <string># of Data Points:</string>
-         </property>
-        </widget>
-       </item>
-       <item row="4" column="0">
-        <widget class="QLabel" name="lbl_step_delay">
-         <property name="text">
-          <string>Per Step Delay:</string>
-         </property>
-        </widget>
-       </item>
-       <item row="5" column="0">
-        <widget class="QLabel" name="lbl_range">
-         <property name="text">
-          <string>Impedance Range:</string>
-         </property>
-        </widget>
-       </item>
-       <item row="6" column="0">
-        <widget class="QLabel" name="lbl_signal_type">
-         <property name="text">
-          <string>Signal Type:</string>
-         </property>
-        </widget>
-       </item>
-       <item row="7" column="0">
-        <widget class="QLabel" name="lbl_bias_type">
-         <property name="text">
-          <string>DC Bias Type:</string>
-         </property>
-        </widget>
-       </item>
-       <item row="8" column="0">
-        <widget class="QLabel" name="lbl_notes">
-         <property name="text">
-          <string>Sample Memo:</string>
-         </property>
-        </widget>
-       </item>
-       <item row="9" column="0">
-        <widget class="QLabel" name="lbl_save_file">
-         <property name="text">
-          <string>Save Location:</string>
-         </property>
-        </widget>
-       </item>
-       <item row="1" column="1">
-        <widget class="QComboBox" name="combo_meas_time"/>
-       </item>
-       <item row="2" column="1">
-        <widget class="QLineEdit" name="ln_data_averaging"/>
-       </item>
-       <item row="3" column="1">
-        <widget class="QLineEdit" name="ln_num_pts"/>
-       </item>
-       <item row="4" column="1">
-        <widget class="QLineEdit" name="ln_step_delay"/>
-       </item>
-       <item row="5" column="1">
-        <widget class="QComboBox" name="combo_range"/>
-       </item>
-       <item row="6" column="1">
-        <widget class="QComboBox" name="combo_signal_type"/>
-       </item>
-       <item row="7" column="1">
-        <widget class="QComboBox" name="combo_bias_type"/>
-       </item>
-       <item row="8" column="1">
-        <widget class="QLineEdit" name="ln_notes"/>
-       </item>
-       <item row="9" column="1">
-        <layout class="QHBoxLayout" name="layout_save_file">
-         <item>
-          <widget class="QLineEdit" name="ln_save_file"/>
-         </item>
-         <item>
-          <widget class="QToolButton" name="btn_save_file">
+     <layout class="QHBoxLayout" name="horizontalLayout">
+      <item>
+       <widget class="QGroupBox" name="gbox_meas_set_params">
+        <property name="title">
+         <string>Measurement Set Parameters:</string>
+        </property>
+        <layout class="QFormLayout" name="formLayout_2">
+         <item row="0" column="0">
+          <widget class="QLabel" name="lbl_function">
            <property name="text">
-            <string>...</string>
+            <string>LCR Function:</string>
            </property>
           </widget>
          </item>
+         <item row="0" column="1">
+          <widget class="QComboBox" name="combo_function"/>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="lbl_meas_time">
+           <property name="text">
+            <string>Measuring Time:</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="0">
+          <widget class="QLabel" name="lbl_data_averaging">
+           <property name="text">
+            <string>Data Averaging:</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="0">
+          <widget class="QLabel" name="lbl_num_pts">
+           <property name="text">
+            <string># of Data Points:</string>
+           </property>
+          </widget>
+         </item>
+         <item row="4" column="0">
+          <widget class="QLabel" name="lbl_step_delay">
+           <property name="text">
+            <string>Per Step Delay:</string>
+           </property>
+          </widget>
+         </item>
+         <item row="5" column="0">
+          <widget class="QLabel" name="lbl_range">
+           <property name="text">
+            <string>Impedance Range:</string>
+           </property>
+          </widget>
+         </item>
+         <item row="6" column="0">
+          <widget class="QLabel" name="lbl_signal_type">
+           <property name="text">
+            <string>Signal Type:</string>
+           </property>
+          </widget>
+         </item>
+         <item row="7" column="0">
+          <widget class="QLabel" name="lbl_bias_type">
+           <property name="text">
+            <string>DC Bias Type:</string>
+           </property>
+          </widget>
+         </item>
+         <item row="8" column="0">
+          <widget class="QLabel" name="lbl_notes">
+           <property name="text">
+            <string>Sample Memo:</string>
+           </property>
+          </widget>
+         </item>
+         <item row="9" column="0">
+          <widget class="QLabel" name="lbl_save_file">
+           <property name="text">
+            <string>Save Location:</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QComboBox" name="combo_meas_time"/>
+         </item>
+         <item row="2" column="1">
+          <widget class="QLineEdit" name="ln_data_averaging"/>
+         </item>
+         <item row="3" column="1">
+          <widget class="QLineEdit" name="ln_num_pts"/>
+         </item>
+         <item row="4" column="1">
+          <widget class="QLineEdit" name="ln_step_delay"/>
+         </item>
+         <item row="5" column="1">
+          <widget class="QComboBox" name="combo_range"/>
+         </item>
+         <item row="6" column="1">
+          <widget class="QComboBox" name="combo_signal_type"/>
+         </item>
+         <item row="7" column="1">
+          <widget class="QComboBox" name="combo_bias_type"/>
+         </item>
+         <item row="8" column="1">
+          <widget class="QLineEdit" name="ln_notes"/>
+         </item>
+         <item row="9" column="1">
+          <layout class="QHBoxLayout" name="layout_save_file">
+           <item>
+            <widget class="QLineEdit" name="ln_save_file"/>
+           </item>
+           <item>
+            <widget class="QToolButton" name="btn_save_file">
+             <property name="text">
+              <string>...</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
         </layout>
-       </item>
-      </layout>
-     </widget>
+       </widget>
+      </item>
+      <item>
+       <widget class="QGroupBox" name="gbox_thermal_settings">
+        <property name="title">
+         <string>Thermal Management Settings</string>
+        </property>
+        <layout class="QFormLayout" name="formLayout_3">
+         <item row="0" column="0">
+          <widget class="QLabel" name="lbl_ramp">
+           <property name="text">
+            <string>Ramp Rate:</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QLineEdit" name="ln_ramp"/>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="lbl_dwell">
+           <property name="text">
+            <string>Equilibration Time:</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QLineEdit" name="ln_dwell"/>
+         </item>
+         <item row="2" column="0">
+          <widget class="QLabel" name="lbl_stability_interval">
+           <property name="toolTip">
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Sets the interval (in s) between measurements during the temperature stability check.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           </property>
+           <property name="text">
+            <string>Meas Interval:</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="1">
+          <widget class="QLineEdit" name="ln_stab_int"/>
+         </item>
+         <item row="3" column="0">
+          <widget class="QLabel" name="lbl_temp_tol">
+           <property name="text">
+            <string>Temp Tolerance:</string>
+           </property>
+          </widget>
+         </item>
+         <item row="4" column="0">
+          <widget class="QLabel" name="lbl_stdev_tol">
+           <property name="text">
+            <string>Variation Tolerance:</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="1">
+          <widget class="QLineEdit" name="ln_temp_tol"/>
+         </item>
+         <item row="4" column="1">
+          <widget class="QLineEdit" name="ln_stdev_tol"/>
+         </item>
+        </layout>
+       </widget>
+      </item>
+     </layout>
     </item>
     <item>
      <widget class="QGroupBox" name="gbox_meas_setup">
@@ -266,7 +323,7 @@
        <number>12</number>
       </property>
       <item>
-       <layout class="QVBoxLayout" name="verticalLayout_3" stretch="5,2,5,2,5,2">
+       <layout class="QVBoxLayout" name="verticalLayout_3" stretch="5,1,5,1,5,1,5,1">
         <item>
          <widget class="QGroupBox" name="gbox_curr_freq">
           <property name="title">
@@ -314,6 +371,69 @@
            <size>
             <width>387</width>
             <height>68</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item>
+         <widget class="QGroupBox" name="gbox_curr_temp">
+          <property name="title">
+           <string>Current Temperature:</string>
+          </property>
+          <layout class="QVBoxLayout" name="verticalLayout_6">
+           <item>
+            <widget class="QLabel" name="lbl_curr_temp">
+             <property name="font">
+              <font>
+               <pointsize>18</pointsize>
+               <weight>75</weight>
+               <bold>true</bold>
+              </font>
+             </property>
+             <property name="text">
+              <string>XX.XX C</string>
+             </property>
+             <property name="alignment">
+              <set>Qt::AlignCenter</set>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <layout class="QHBoxLayout" name="horizontalLayout_10">
+             <item>
+              <widget class="QRadioButton" name="radio_chamber_tc">
+               <property name="text">
+                <string>ChamberTC</string>
+               </property>
+               <property name="checked">
+                <bool>true</bool>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QRadioButton" name="radio_user_tc">
+               <property name="text">
+                <string>User TC</string>
+               </property>
+               <property name="checked">
+                <bool>false</bool>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
+         <spacer name="verticalSpacer_3">
+          <property name="orientation">
+           <enum>Qt::Vertical</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>20</width>
+            <height>40</height>
            </size>
           </property>
          </spacer>
@@ -549,6 +669,33 @@
             <widget class="QLabel" name="lbl_curr_meas_bias">
              <property name="text">
               <string>- - - -</string>
+             </property>
+             <property name="alignment">
+              <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="lbl_pipe4">
+             <property name="text">
+              <string>  |  </string>
+             </property>
+             <property name="alignment">
+              <set>Qt::AlignCenter</set>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="lbl_temp">
+             <property name="text">
+              <string>Temperature:</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="lbl_curr_meas_temp">
+             <property name="text">
+              <string>- - - - </string>
              </property>
              <property name="alignment">
               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>

@@ -10,7 +10,7 @@ class AgilentE4980A(QObject):
     # This signal needs to be defined before the __init__ in order to allow it to work
     new_data = pyqtSignal(list)
     
-    def __init__(self):
+    def __init__(self, parent=None, gpib_addr=None):
         super().__init__()
 
         self.rm = visa.ResourceManager()
@@ -28,7 +28,7 @@ class AgilentE4980A(QObject):
 
         for instr in instruments:
             print(instr)
-            curr_instr = self.rm.open_resource(instr)
+            curr_instr = self.rm.open_resource(instr, open_timeout=0.5)
             # if the first 29 characters of the returned string match the LCR ID return
             try:
                 if curr_instr.query("*IDN?")[0:28] == ID_STR:

@@ -52,7 +52,7 @@ class CapFreqTempWidget(CapFreqWidget):
         self.table_meas_setup.setColumnCount(6)
         self.table_meas_setup.setHorizontalHeaderLabels(self.meas_setup_hheaders)
         self.add_table_items()
-        self.self.table_meas_setup.item(0, 5).setText('25')
+        self.table_meas_setup.item(0, 5).setText('25')
 
     def init_connections(self):
         super().init_connections()

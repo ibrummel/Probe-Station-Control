@@ -14,7 +14,9 @@ class AgilentE4980A(QObject):
         super().__init__()
 
         self.rm = visa.ResourceManager()
-        self.select_box = InstrumentSelectBox(self.rm)
+        # ToDo: Finish removing this, errors will show up if the auto connect or value that is fed don't work, but
+        #  not having this run should cut down on startup time.
+        # self.select_box = InstrumentSelectBox(self.rm)
         self.lcr_addr = gpib_addr
 
         if self.lcr_addr is None:

@@ -15,13 +15,16 @@ class AgilentE4980A(QObject):
 
         self.rm = visa.ResourceManager()
         self.select_box = InstrumentSelectBox(self.rm)
-        self.lcr_addr = ''
+        self.lcr_addr = gpib_addr
 
-        try:
-            self.lcr = self.connect_lcr()
-        except NameError:
-            print("Could not connect to lcr. GPIB address not found.")
-            self.manual_connect_lcr()
+        if self.lcr_addr is None:
+            try:
+                self.lcr = self.connect_lcr()
+            except NameError:
+                print("Could not connect to lcr. GPIB address not found.")
+                self.manual_connect_lcr()
+        else:
+            self.lcr = visa.ResourceManager().open_resource(self.lcr_addr)
 
     def connect_lcr(self):
         instruments = self.rm.list_resources()

@@ -99,7 +99,6 @@ class CapFreqWidget (QTabWidget):
         self.lbl_val1 = self.findChild(QLabel, 'lbl_val1')
         self.gbox_val2 = self.findChild(QGroupBox, 'gbox_val2')
         self.lbl_val2 = self.findChild(QLabel, 'lbl_val2')
-        # Fixme: set this up to be updated with each new measurement step
         self.gbox_curr_freq = self.findChild(QGroupBox, 'gbox_curr_freg')
         self.lbl_curr_freq = self.findChild(QLabel, 'lbl_curr_freq')
 
@@ -152,6 +151,19 @@ class CapFreqWidget (QTabWidget):
         self.lcr.new_data.connect(self.plot_new_points)
 
     def init_control_setup(self):
+        self.init_setup_table()
+
+        # Set up comboboxes
+        self.combo_range.addItems(Const.VALID_IMP_RANGES)
+        self.combo_function.addItems(list(Const.FUNC_DICT.keys()))
+        self.combo_meas_time.addItems(list(Const.MEASURE_TIME_DICT.keys()))
+        self.combo_signal_type.addItems(['Voltage', 'Current'])
+        self.combo_bias_type.addItems(['Voltage', 'Current'])
+
+        # Set up timers
+        self.live_readout_timer.start(500)
+
+    def init_setup_table(self):
         # Set up initial table headers and size
         self.table_meas_setup.setRowCount(1)
         self.table_meas_setup.setColumnCount(5)
@@ -165,16 +177,6 @@ class CapFreqWidget (QTabWidget):
         self.table_meas_setup.item(0, 2).setText('0.05')
         self.table_meas_setup.item(0, 3).setText('0')
         self.table_meas_setup.item(0, 4).setText('0')
-
-        # Set up comboboxes
-        self.combo_range.addItems(Const.VALID_IMP_RANGES)
-        self.combo_function.addItems(list(Const.FUNC_DICT.keys()))
-        self.combo_meas_time.addItems(list(Const.MEASURE_TIME_DICT.keys()))
-        self.combo_signal_type.addItems(['Voltage', 'Current'])
-        self.combo_bias_type.addItems(['Voltage', 'Current'])
-
-        # Set up timers
-        self.live_readout_timer.start(500)
 
     def get_new_data(self):
         # Helper function to get new data on timer timeout. Was failing when called directly, could be something about

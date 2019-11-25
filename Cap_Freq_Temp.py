@@ -1,5 +1,9 @@
 # ToDo: Add sun chamber monitoring and control to the norm Cap_Freq Measurements, allowing for temperature dependent
 #  studies of materials without manual intervention
+import sys
+
+import visa
+
 from Sun_EC1X import SunEC1xChamber
 from Cap_Freq import CapFreqWidget, CapFreqMeasureWorkerObject
 from Agilent_E4980A import AgilentE4980A
@@ -7,7 +11,7 @@ from File_Print_Headers import *
 from statistics import stdev, mean
 import pandas as pd
 from time import sleep
-from PyQt5.QtWidgets import QLineEdit, QLabel, QGroupBox, QRadioButton
+from PyQt5.QtWidgets import QLineEdit, QLabel, QGroupBox, QRadioButton, QApplication
 
 
 class CapFreqTempWidget(CapFreqWidget):
@@ -40,8 +44,15 @@ class CapFreqTempWidget(CapFreqWidget):
         self.lbl_curr_temp = self.findChild(QLabel, 'lbl_curr_temp')
         self.lbl_curr_meas_temp = self.findChild(QLabel, 'lbl_curr_meas_temp')
 
-
+        self.init_setup_table()
         self.init_connections()
+
+    def init_setup_table(self):
+        super().init_setup_table()
+        self.table_meas_setup.setColumnCount(6)
+        self.table_meas_setup.setHorizontalHeaderLabels(self.meas_setup_hheaders)
+        self.add_table_items()
+        self.self.table_meas_setup.item(0, 5).setText('25')
 
     def init_connections(self):
         super().init_connections()
@@ -199,3 +210,11 @@ class CapFreqTempMeasureWorkerObject (CapFreqMeasureWorkerObject):
     #     data = pd.Series(data, index=self.data_df.columns)
 
     # ToDo: Override all functions called in the measure method to give temperature measurements as well.
+
+# app = QApplication(sys.argv)
+#
+# lcr = visa.ResourceManager().open_resource('GPIB0:18::INSTR')
+# sun = visa.ResourceManager().open_resource('GPIB0::6::INSTR')
+# main_window = CapFreqTempWidget()
+# main_window.show()
+# sys.exit(app.exec_())

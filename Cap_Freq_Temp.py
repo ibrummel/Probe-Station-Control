@@ -3,6 +3,7 @@
 import sys
 
 import visa
+from PyQt5.QtCore import QThread
 
 from Sun_EC1X import SunEC1xChamber
 from Cap_Freq import CapFreqWidget, CapFreqMeasureWorkerObject
@@ -46,6 +47,13 @@ class CapFreqTempWidget(CapFreqWidget):
 
         self.init_setup_table()
         self.init_connections()
+
+    def init_measure_worker(self):
+        self.measuring_thread = QThread()
+        self.measuring_worker = CapFreqTempMeasureWorkerObject(self)
+        self.measuring_worker.moveToThread(self.measuring_thread)
+        self.lcr.moveToThread(self.measuring_thread)
+        self.sun.moveToThread(self.measuring_thread)
 
     def init_setup_table(self):
         super().init_setup_table()

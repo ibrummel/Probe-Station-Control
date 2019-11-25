@@ -104,11 +104,7 @@ class CapFreqWidget (QTabWidget):
 
         self.live_plot = self.findChild(LivePlotWidget, 'live_plot')
 
-        # Create a thread to use for measuring data
-        self.measuring_thread = QThread()
-        self.measuring_worker = CapFreqMeasureWorkerObject(self)
-        self.measuring_worker.moveToThread(self.measuring_thread)
-        self.lcr.moveToThread(self.measuring_thread)
+        self.init_measure_worker()
 
         # Gets data and emits a signal to update live value readouts
         self.lcr.get_data()
@@ -149,6 +145,13 @@ class CapFreqWidget (QTabWidget):
         self.measuring_thread.finished.connect(self.end_measurement)
         self.measuring_thread.started.connect(self.measuring_worker.measure)
         self.lcr.new_data.connect(self.plot_new_points)
+
+    def init_measure_worker(self):
+        # Create a thread to use for measuring data
+        self.measuring_thread = QThread()
+        self.measuring_worker = CapFreqMeasureWorkerObject(self)
+        self.measuring_worker.moveToThread(self.measuring_thread)
+        self.lcr.moveToThread(self.measuring_thread)
 
     def init_control_setup(self):
         self.init_setup_table()

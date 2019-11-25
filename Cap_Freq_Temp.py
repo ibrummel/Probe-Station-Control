@@ -14,6 +14,8 @@ class CapFreqTempWidget(CapFreqWidget):
 
     def __init__(self, lcr: AgilentE4980A, sun: SunEC1xChamber):
 
+        super().__init__(lcr, './src/ui/cap_freq_temp_tabs.ui')
+
         self.sun = sun
         self.dwell = 10
         self.ramp = 5
@@ -39,7 +41,7 @@ class CapFreqTempWidget(CapFreqWidget):
         self.lbl_curr_temp = self.findChild(QLabel, 'lbl_curr_temp')
         self.lbl_curr_meas_temp = self.findChild(QLabel, 'lbl_curr_meas_temp')
 
-        super().__init__(lcr, './src/ui/cap_freq_temp_tabs.ui')
+
         self.init_connections()
 
     def init_connections(self):

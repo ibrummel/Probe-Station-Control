@@ -63,6 +63,7 @@ class CapFreqTempWidget(CapFreqWidget):
         super().update_live_readout(data)
         # Going to try directly getting the temperature in this function,
         #  should keep compatibility simple.
+        print(self.sun)
         if self.radio_chamber_tc.isChecked():
             self.lbl_curr_temp.setText(self.sun.get_temp())
         elif self.radio_user_tc.isChecked():

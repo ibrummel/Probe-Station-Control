@@ -1,10 +1,8 @@
 from PyQt5 import uic
-from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import (QWidget, QComboBox, QLineEdit, QLabel, QFormLayout, QVBoxLayout,
-                             QGroupBox, QTableWidget, QTableWidgetItem, QTabWidget, QHBoxLayout, QMessageBox,
-                             QToolButton, QApplication, QFileDialog, QFrame, QStyleFactory, QProgressBar, QPushButton)
-from PyQt5.QtCore import QTimer, QThread, Qt, QSize, pyqtSignal, QObject
-import sys
+from PyQt5.QtWidgets import (QWidget, QComboBox, QLineEdit, QLabel, QGroupBox, QTableWidget,
+                             QTableWidgetItem, QTabWidget, QMessageBox, QToolButton, QApplication,
+                             QFileDialog, QProgressBar, QPushButton)
+from PyQt5.QtCore import QTimer, QThread, pyqtSignal, QObject
 import os
 from io import StringIO
 from time import sleep
@@ -24,7 +22,7 @@ class CapFreqWidget (QTabWidget):
     # This signal needs to be defined before the __init__ in order to allow it to work
     stop_measurement_worker = pyqtSignal()
 
-    def __init__(self, lcr: AgilentE4980A):
+    def __init__(self, lcr: AgilentE4980A, ui_path='./src/ui/cap_freq_tabs.ui'):
         super().__init__()
 
         # Define class variables and objects
@@ -36,7 +34,7 @@ class CapFreqWidget (QTabWidget):
         self.signal_type = 'voltage'
         self.bias_type = 'voltage'
         self.num_pts = 50
-        self.step_delay = 0.0
+        self.meas_delay = 0.0
         self.enable_live_plots = False
         self.enable_live_vals = True
 
@@ -51,7 +49,7 @@ class CapFreqWidget (QTabWidget):
         self.return_to_defaults()
 
         # Begin ui setup by importing the ui file
-        self.ui = uic.loadUi('./src/ui/cap_freq_tabs.ui', self)
+        self.ui = uic.loadUi(ui_path, self)
 
         # Define measurement setup tab
         self.tab_meas_setup = self.findChild(QWidget, 'tab_meas_setup')
@@ -68,7 +66,7 @@ class CapFreqWidget (QTabWidget):
         self.ln_num_pts = self.findChild(QLineEdit, 'ln_num_pts')
         self.ln_num_pts.setText(str(self.num_pts))
         self.ln_step_delay = self.findChild(QLineEdit, 'ln_step_delay')
-        self.ln_step_delay.setText(str(self.step_delay))
+        self.ln_step_delay.setText(str(self.meas_delay))
         self.ln_notes = self.findChild(QLineEdit, 'ln_notes')
         self.ln_save_file = self.findChild(QLineEdit, 'ln_save_file')
         self.btn_save_file = self.findChild(QToolButton, 'btn_save_file')
@@ -109,7 +107,7 @@ class CapFreqWidget (QTabWidget):
 
         # Create a thread to use for measuring data
         self.measuring_thread = QThread()
-        self.measuring_worker = MeasureWorkerObj(self)
+        self.measuring_worker = CapFreqMeasureWorkerObject(self)
         self.measuring_worker.moveToThread(self.measuring_thread)
         self.lcr.moveToThread(self.measuring_thread)
 
@@ -205,10 +203,10 @@ class CapFreqWidget (QTabWidget):
 
     def change_step_delay(self):
         try:
-            self.step_delay = float(self.ln_step_delay.text())
+            self.meas_delay = float(self.ln_step_delay.text())
         except ValueError:
-            self.step_delay = 0.0
-            self.ln_step_delay.setText(str(self.step_delay))
+            self.meas_delay = 0.0
+            self.ln_step_delay.setText(str(self.meas_delay))
 
     def change_impedance_range(self):
         self.range = self.combo_range.currentText()
@@ -282,45 +280,52 @@ class CapFreqWidget (QTabWidget):
                     self.table_meas_setup.setItem(irow, icol, new_widget)
 
     def generate_header(self, index, row):
-        # Gather format strings for header
-        meas_number = index
-        now = datetime.now()
-        date_now = str(now).split(' ')[0]
-        time_now = str(now.strftime('%H:%M:%S'))
+        header_vars = self.get_header_vars(index, row)
 
-        start = row[self.meas_setup_hheaders[0]]
-        stop = row[self.meas_setup_hheaders[1]]
-
-        osc = row[self.meas_setup_hheaders[2]]
-        if self.combo_signal_type.currentText() == 'Voltage':
-            osc_type = 'V'
-        elif self.combo_signal_type.currentText() == 'Current':
-            osc_type = 'A'
-        else:
-            osc_type = 'UNKNOWN'
-
-        bias = row[self.meas_setup_hheaders[3]]
-        if self.combo_bias_type.currentText() == 'Voltage':
-            bias_type = 'V'
-        elif self.combo_bias_type.currentText() == 'Current':
-            bias_type = 'A'
-        else:
-            bias_type = 'UNKNOWN'
-
-        notes = self.ln_notes.text()
-
-        header = CAP_FREQ_HEADER.format(self.lcr_function,
-                                        date_now,
-                                        time_now,
-                                        meas_number,
-                                        start,
-                                        stop,
-                                        osc_type, osc,
-                                        bias_type, bias,
-                                        self.step_delay,
-                                        'Notes:\t{}'.format(notes))
+        header = CAP_FREQ_HEADER.format(meas_type=self.lcr_function,
+                                        meas_date=header_vars['date_now'],
+                                        meas_time=header_vars['time_now'],
+                                        meas_num=header_vars['meas_number'],
+                                        start_freq=header_vars['start'],
+                                        stop_freq=header_vars['stop'],
+                                        osc_type=header_vars['osc_type'],
+                                        osc=header_vars['osc'],
+                                        bias_type=header_vars['bias_type'],
+                                        bias=header_vars['bias'],
+                                        step_delay=self.meas_delay,
+                                        notes='Notes:\t{}'.format(header_vars['notes']))
 
         return header
+
+    def get_header_vars(self, index, row):
+        # Gather format strings for header
+        header_vars = {'meas_number': index}
+        now = datetime.now()
+        header_vars['date_now'] = str(now).split(' ')[0]
+        header_vars['time_now'] = str(now.strftime('%H:%M:%S'))
+
+        header_vars['start'] = row[self.meas_setup_hheaders[0]]
+        header_vars['stop'] = row[self.meas_setup_hheaders[1]]
+
+        header_vars['osc'] = row[self.meas_setup_hheaders[2]]
+        if self.combo_signal_type.currentText() == 'Voltage':
+            header_vars['osc_type'] = 'V'
+        elif self.combo_signal_type.currentText() == 'Current':
+            header_vars['osc_type'] = 'A'
+        else:
+            header_vars['osc_type'] = 'UNKNOWN'
+
+        header_vars['bias'] = row[self.meas_setup_hheaders[3]]
+        if self.combo_bias_type.currentText() == 'Voltage':
+            header_vars['bias_type'] = 'V'
+        elif self.combo_bias_type.currentText() == 'Current':
+            header_vars['bias_type'] = 'A'
+        else:
+            header_vars['bias_type'] = 'UNKNOWN'
+
+        header_vars['notes'] = self.ln_notes.text()
+
+        return header_vars
 
     def generate_test_matrix(self):
         self.tests_df = pd.DataFrame(data=None, index=self.meas_setup_vheaders, columns=self.meas_setup_hheaders)
@@ -340,13 +345,9 @@ class CapFreqWidget (QTabWidget):
         self.lcr.signal_level(self.signal_type, self.table_meas_setup.item(0, 2).text())
         self.lcr.dc_bias_level(self.bias_type, self.table_meas_setup.item(0, 3).text())
 
-    # Fixme: I think this will mostly still work, but I need to set it up for the checking and unchecking rather than
-    #  manual icon changes and connect/disconnect.
-
     def on_start_stop_clicked(self):
         # Get the sender
         btn = self.sender()
-        print(btn)
         # If the sender is not checked (trying to start the measurement)
         if btn.isChecked():
             # Set both buttons to checked
@@ -434,7 +435,7 @@ class CapFreqWidget (QTabWidget):
         # Set live vals to update periodically
         self.enable_live_vals = True
         # Disable live plotting of values
-        self.enable_live_plots =  False
+        self.enable_live_plots = False
         self.return_to_defaults()
 
         print('Measurement finished')
@@ -494,7 +495,7 @@ class CapFreqWidget (QTabWidget):
                                                                                indices[1] + 1, self.num_pts))
 
 
-class MeasureWorkerObj (QObject):
+class CapFreqMeasureWorkerObject (QObject):
     measurement_finished = pyqtSignal()
     freq_step_finished = pyqtSignal(list)
 
@@ -502,16 +503,57 @@ class MeasureWorkerObj (QObject):
         super().__init__()
         self.parent = parent
         self.stop = False
+        self.data_df = pd.DataFrame()
         self.parent.stop_measurement_worker.connect(self.stop_early)
+
+        # Predefine class variables
+        self.step_start = 0
+        self.step_stop = 0
+        self.step_osc = 0
+        self.step_bias = 0
+        self.step_delay = 0
 
     def stop_early(self):
         self.stop = True
 
-    def set_current_meas_labels(self, start, stop, osc, bias):
-        self.parent.lbl_curr_meas_start.setText(str(start))
-        self.parent.lbl_curr_meas_stop.setText(str(stop))
-        self.parent.lbl_curr_meas_osc.setText(str(osc))
-        self.parent.lbl_curr_meas_bias.setText(str(bias))
+    def set_current_meas_labels(self):
+        self.parent.lbl_curr_meas_start.setText(str(self.step_start))
+        self.parent.lbl_curr_meas_stop.setText(str(self.step_stop))
+        self.parent.lbl_curr_meas_osc.setText(str(self.step_osc))
+        self.parent.lbl_curr_meas_bias.setText(str(self.step_bias))
+
+    def set_test_params(self, row):
+        # Set up current test specific values
+        self.step_start = row[self.parent.meas_setup_hheaders[0]]
+        self.step_stop = row[self.parent.meas_setup_hheaders[1]]
+        self.step_osc = row[self.parent.meas_setup_hheaders[2]]
+        self.step_bias = row[self.parent.meas_setup_hheaders[3]]
+        self.step_delay = int(row[self.parent.meas_setup_hheaders[4]])
+
+    def get_out_columns(self):
+        columns = Const.PARAMETERS_BY_FUNC[Const.FUNC_DICT[self.parent.combo_function.currentText()]]
+        if columns[0] != 'Frequency [Hz]':
+            columns.insert(0, 'Frequency [Hz]')
+
+        return columns
+
+    def read_new_data(self):
+        # Read the measurement result
+        data = self.parent.lcr.get_data()
+        data = pd.Series(data, index=self.data_df.columns)
+
+        # Store the data to the data_df
+        self.data_df = self.data_df.append(data, ignore_index=True)
+
+    def blocking_func(self):
+        count = 0
+        while count < self.step_delay:
+            sleep(1)
+            if (self.step_delay - count) > 10 and not (count % 10):
+                print('Sleeping until measurement time. Time Remaining: {}s'.format((self.step_delay - count)))
+            elif (self.step_delay - count) <= 10:
+                print('Sleeping until measurement time. Time Remaining: {}s'.format((self.step_delay - count)))
+            count += 1
 
     def measure(self):
         # Write configured parameters to lcr
@@ -521,43 +563,33 @@ class MeasureWorkerObj (QObject):
         self.parent.generate_test_matrix()
 
         # Set up the data column headers
-        columns = Const.PARAMETERS_BY_FUNC[Const.FUNC_DICT[self.parent.combo_function.currentText()]]
-        if columns[0] != 'Frequency [Hz]':
-            columns.insert(0, 'Frequency [Hz]')
+        columns = self.get_out_columns()
+
         # For each measurement in the test matrix
         for index, row in self.parent.tests_df.iterrows():
             # Create an empty data frame to hold results, Column Headers determined by measurement type
-            data_df = pd.DataFrame(data=None,
-                                   columns=columns)
+            self.data_df = pd.DataFrame(data=None, columns=columns)
 
-            # Pull in test specific values
-            start = row[self.parent.meas_setup_hheaders[0]]
-            stop = row[self.parent.meas_setup_hheaders[1]]
-            osc = row[self.parent.meas_setup_hheaders[2]]
-            bias = row[self.parent.meas_setup_hheaders[3]]
-            delay = int(row[self.parent.meas_setup_hheaders[4]])
+            # Set test params for this measurement
+            self.set_test_params(row)
+
             # ToDo: Should delay be added to the current measurement labels?
-            self.set_current_meas_labels(start, stop, osc, bias)
+            # Set the information labels to match this row
+            self.set_current_meas_labels()
 
-            # ToDo: Should this set to defualt during this wait? Seems like yes to avoid over exposure to
-            #  bias/signal. Also user can set settling time elsewhere that would allow sample to be exposed
-            #  to measuring conditions longer.
+            # Wait for whatever blocking function is needed (just delay here, override for temp)
+            #  Return instrument to defaults while waiting so no one kills their samples
             self.parent.return_to_defaults()
-            count = 0
-            while count < delay:
-                sleep(1)
-                if (delay - count) > 10 and not (count % 10):
-                    print('Sleeping until measurement time. Time Remaining: {}s'.format((delay-count)))
-                elif (delay-count) <= 10:
-                    print('Sleeping until measurement time. Time Remaining: {}s'.format((delay - count)))
-                count += 1
+            self.blocking_func()
                 
             print('Beginning measurement...')
             # Set lcr accordingly
-            self.parent.lcr.signal_level(self.parent.combo_signal_type.currentText(), osc)
-            self.parent.lcr.dc_bias_level(self.parent.combo_bias_type.currentText(), bias)
+            self.parent.lcr.signal_level(self.parent.combo_signal_type.currentText(), self.step_osc)
+            self.parent.lcr.dc_bias_level(self.parent.combo_bias_type.currentText(), self.step_bias)
 
-            freq_steps = Static.generate_log_steps(int(start), int(stop), int(self.parent.num_pts))
+            freq_steps = Static.generate_log_steps(int(self.step_start),
+                                                   int(self.step_stop),
+                                                   int(self.parent.num_pts))
 
             # Start a new data line in each plot
             self.parent.live_plot.canvas.start_new_line()
@@ -567,17 +599,15 @@ class MeasureWorkerObj (QObject):
                 self.parent.lcr.signal_frequency(freq_steps[step_idx])
 
                 # Wait for measurement to stabilize (50ms to allow signal to stabilize + user set delay)
-                sleep(self.parent.step_delay + 0.05)
+                sleep(self.parent.meas_delay + 0.05)
 
                 # Trigger the measurement to start
                 self.parent.lcr.trigger_init()
 
-                # Read the measurement result
-                data = self.parent.lcr.get_data()
-                data = pd.Series(data, index=data_df.columns)
+                # Read data and store it to the dataframe
+                self.read_new_data()
 
-                # Store the data to the data_df
-                data_df = data_df.append(data, ignore_index=True)
+                # Emit signal to update progress bar
                 self.freq_step_finished.emit([int(index.split('M')[-1]), step_idx])
                 QApplication.processEvents()  # Checks if measurement has been stopped.
                 if self.stop:
@@ -587,15 +617,9 @@ class MeasureWorkerObj (QObject):
 
             # Store the measurement data in a field of the tests_df
             self.parent.header_dict[index] = self.parent.generate_header(index, row)
-            self.parent.data_dict[index] = data_df
+            # ToDo: Verify that this doesn't need to be a copy line. I think the data has been
+            #  changing with each measurement.... I hope.
+            self.parent.data_dict[index] = self.data_df
 
         self.stop = False
         self.measurement_finished.emit()
-
-
-app = QApplication(sys.argv)
-app.setStyle(QStyleFactory.create('Fusion'))
-gui = CapFreqWidget(AgilentE4980A())
-gui.show()
-
-sys.exit(app.exec_())

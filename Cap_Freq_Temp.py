@@ -51,8 +51,11 @@ class CapFreqTempWidget(CapFreqWidget):
     def init_measure_worker(self):
         self.measuring_thread = QThread()
         self.measuring_worker = CapFreqTempMeasureWorkerObject(self)
+        print('moving worker')
         self.measuring_worker.moveToThread(self.measuring_thread)
+        print('moving lcr')
         self.lcr.moveToThread(self.measuring_thread)
+        print('moving sun')
         self.sun.moveToThread(self.measuring_thread)
 
     def init_setup_table(self):

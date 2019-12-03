@@ -9,7 +9,7 @@ from time import sleep
 class AgilentE4980A(QObject):
     new_data = pyqtSignal(list)
 
-    def __init__(self):
+    def __init__(self, parent=None, gpib_addr=None):
         super().__init__()
 
         self.lcr_addr = ''

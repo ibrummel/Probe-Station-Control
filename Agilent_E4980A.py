@@ -11,7 +11,7 @@ class AgilentE4980A(QObject):
     new_data = pyqtSignal(list)
     
     def __init__(self, parent=None, gpib_addr=None):
-        super().__init__()
+        super().__init__(parent)
 
         self.rm = visa.ResourceManager()
         # ToDo: Finish removing this, errors will show up if the auto connect or value that is fed don't work, but

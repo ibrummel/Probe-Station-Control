@@ -648,7 +648,7 @@ try:
 except IndexError:
     standalone = False
 
-if standalone:
+if standalone == 'capfreq':
     lcr = AgilentE4980A(parent=None, gpib_addr='GPIB0::18::INSTR')
     app = QApplication(sys.argv)
     main_window = CapFreqWidget(lcr=lcr)

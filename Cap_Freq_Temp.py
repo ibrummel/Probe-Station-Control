@@ -6,8 +6,10 @@ import visa
 from PyQt5.QtCore import QThread
 
 from Sun_EC1X import SunEC1xChamber
+# from fake_sun import SunEC1xChamber
 from Cap_Freq import CapFreqWidget, CapFreqMeasureWorkerObject
 from Agilent_E4980A import AgilentE4980A
+# from fake_E4980 import AgilentE4980A
 from File_Print_Headers import *
 from statistics import stdev, mean
 import pandas as pd
@@ -238,10 +240,10 @@ try:
 except IndexError:
     standalone = False
 
-if standalone:
+if standalone == 'capfreqtemp':
     lcr = AgilentE4980A(parent=None, gpib_addr='GPIB0::18::INSTR')
     sun = SunEC1xChamber(parent=None, gpib_addr='GPIB0::6::INSTR')
     app = QApplication(sys.argv)
-    main_window = CapFreqTempWidget(lcr=lcr, sun=sun, move_lcr=True)
+    main_window = CapFreqTempWidget(lcr=lcr, sun=sun)
     main_window.show()
     sys.exit(app.exec_())

@@ -27,7 +27,7 @@ class CapFreqWidget (QTabWidget):
 
     def __init__(self, lcr: AgilentE4980A, measuring_thread=QThread(), ui_path='./src/ui/cap_freq_tabs.ui'):
         super().__init__()
-
+        print('Initializing Capacitance-Frequency Widget...')
         # Define class variables and objects
         self.lcr = lcr
         self.lcr_function = 'self.lcr.get_current_function()'  # Dummy value which is set after connection
@@ -55,6 +55,7 @@ class CapFreqWidget (QTabWidget):
         self.return_to_defaults()
 
         # Begin ui setup by importing the ui file
+        print('Loading ui file from "{}"'.format(ui_path))
         self.ui = uic.loadUi(ui_path, self)
 
         # Define measurement setup tab
@@ -121,6 +122,7 @@ class CapFreqWidget (QTabWidget):
         # Initialize widget bits
         self.init_connections()
         self.init_control_setup()
+        print('Capacitance-Frequency initialization complete')
 
     def init_connections(self):
         # Control edit connections
@@ -149,13 +151,13 @@ class CapFreqWidget (QTabWidget):
         self.stop_measurement_worker.connect(self.measuring_worker.stop_early)
         self.measuring_worker.freq_step_finished.connect(self.update_measurement_progress)
         self.measuring_thread.finished.connect(self.end_measurement)
-        self.start_measuring.connect(self.measuring_worker.measure)
+        self.measuring_thread.started.connect(self.measuring_worker.measure)
         self.lcr.new_data.connect(self.plot_new_points)
 
     def init_measure_worker(self):
         self.measuring_worker = CapFreqMeasureWorkerObject(self)
         self.measuring_worker.moveToThread(self.measuring_thread)
-        self.lcr.moveToThread(self.measuring_thread)
+        # self.lcr.moveToThread(self.measuring_thread)
 
     def init_control_setup(self):
         self.init_setup_table()
@@ -382,13 +384,15 @@ class CapFreqWidget (QTabWidget):
             # Start the measurement
             self.halt_measurement()
 
+    def move_instr_to_worker_thread(self):
+        self.lcr.moveToThread(self.measuring_thread)
+
     def halt_measurement(self):
         self.stop_measurement_worker.emit()
         self.enable_live_plots = False
 
     def start_measurement(self):
         self.set_save_file_path_by_line()
-        print(self.save_file_path)
         if os.path.isfile(self.save_file_path):
             overwrite = QMessageBox.warning(self, 'File already exists',
                                             'This data file already exists. Would you like to overwrite?',
@@ -433,8 +437,9 @@ class CapFreqWidget (QTabWidget):
         self.live_plot.clear_data()
         self.enable_live_plots = True
 
+        self.move_instr_to_worker_thread()
         # Emit signal to start the worker measuring
-        self.start_measuring.emit()
+        self.measuring_thread.start()
 
     # When the worker says it is done, save data and reset widget state to interactive
     def end_measurement(self):
@@ -565,6 +570,9 @@ class CapFreqMeasureWorkerObject (QObject):
                 print('Sleeping until measurement time. Time Remaining: {}s'.format((self.step_delay - count)))
             count += 1
 
+    def return_instr_to_main_thread(self):
+        self.lcr.moveToThread(QApplication.instance().thread())
+
     def measure(self):
         # Write configured parameters to lcr
         self.parent.setup_lcr()
@@ -643,7 +651,6 @@ except IndexError:
 if standalone:
     lcr = AgilentE4980A(parent=None, gpib_addr='GPIB0::18::INSTR')
     app = QApplication(sys.argv)
-    print('Capacitance-Frequency')
     main_window = CapFreqWidget(lcr=lcr)
     main_window.show()
     sys.exit(app.exec_())

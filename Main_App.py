@@ -30,9 +30,8 @@ class ProbeStationControlMainWindow(QMainWindow):
         # Create a thread for all the measuring widgets to use
         self.measuring_thread = QThread()
 
-        self.cap_freq = CapFreqWidget(lcr=self.instruments['lcr'], measuring_thread=self.measuring_thread)
-        self.cap_freq_temp = CapFreqTempWidget(lcr=self.instruments['lcr'], sun=self.instruments['sun'],
-                                               move_lcr=False, measuring_thread=self.measuring_thread)
+        self.cap_freq = CapFreqWidget(lcr=self.instruments['lcr'])
+        self.cap_freq_temp = CapFreqTempWidget(lcr=self.instruments['lcr'], sun=self.instruments['sun'])
 
         self.tabs_meas_types = QTabWidget()
         self.tabs_meas_types.addTab(self.cap_freq, 'Capacitance-Frequency')

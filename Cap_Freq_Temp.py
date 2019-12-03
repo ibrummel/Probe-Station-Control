@@ -17,11 +17,11 @@ from PyQt5.QtWidgets import QLineEdit, QLabel, QGroupBox, QRadioButton, QApplica
 
 class CapFreqTempWidget(CapFreqWidget):
 
-    def __init__(self, lcr: AgilentE4980A, sun: SunEC1xChamber, move_lcr=True, measuring_thread=QThread()):
+    def __init__(self, lcr: AgilentE4980A, sun: SunEC1xChamber, measuring_thread=QThread()):
 
         self.sun = sun
-        self.move_lcr = move_lcr
-        super().__init__(lcr, measuring_thread, './src/ui/cap_freq_temp_tabs.ui')
+        super().__init__(lcr=lcr, measuring_thread=measuring_thread, ui_path='./src/ui/cap_freq_temp_tabs.ui')
+        print('Initializing Capacitance-Frequency-Temperature Widget')
         self.dwell = 10
         self.ramp = 5
         self.stab_int = 5
@@ -54,11 +54,11 @@ class CapFreqTempWidget(CapFreqWidget):
         self.measuring_worker = CapFreqTempMeasureWorkerObject(self)
         print('moving worker')
         self.measuring_worker.moveToThread(self.measuring_thread)
-        if self.move_lcr:
-            print('moving lcr')
-            self.lcr.moveToThread(self.measuring_thread)
-        print('moving sun')
-        self.sun.moveToThread(self.measuring_thread)
+        # if self.move_lcr:
+        #     print('moving lcr')
+        #     self.lcr.moveToThread(self.measuring_thread)
+        # print('moving sun')
+        # self.sun.moveToThread(self.measuring_thread)
 
     def init_setup_table(self):
         super().init_setup_table()
@@ -81,6 +81,10 @@ class CapFreqTempWidget(CapFreqWidget):
 
     def change_stab_int(self):
         self.stab_int = float(self.ln_stab_int.text())
+
+    def move_instr_to_worker_thread(self):
+        self.lcr.moveToThread(self.measuring_thread)
+        self.sun.moveToThread(self.measuring_thread)
 
     def update_live_readout(self, data: list):
         super().update_live_readout(data)
@@ -163,6 +167,10 @@ class CapFreqTempMeasureWorkerObject (CapFreqMeasureWorkerObject):
         super().set_current_meas_labels()
         self.parent.lbl_curr_meas_temp.setText(str(self.step_temp))
 
+    def return_instr_to_main_thread(self):
+        self.lcr.moveToThread(QApplication.instance().thread())
+        self.sun.moveToThread(QApplication.instance().thread())
+
     def blocking_func(self):
         user_T = []
         chamber_T = []
@@ -224,6 +232,7 @@ class CapFreqTempMeasureWorkerObject (CapFreqMeasureWorkerObject):
 
     # ToDo: Override all functions called in the measure method to give temperature measurements as well.
 
+
 try:
     standalone = sys.argv[1]
 except IndexError:
@@ -233,7 +242,6 @@ if standalone:
     lcr = AgilentE4980A(parent=None, gpib_addr='GPIB0::18::INSTR')
     sun = SunEC1xChamber(parent=None, gpib_addr='GPIB0::6::INSTR')
     app = QApplication(sys.argv)
-    print('Capacitance-Frequency-Temperature')
     main_window = CapFreqTempWidget(lcr=lcr, sun=sun, move_lcr=True)
     main_window.show()
     sys.exit(app.exec_())

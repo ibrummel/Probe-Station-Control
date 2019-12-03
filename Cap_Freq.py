@@ -21,6 +21,7 @@ import Static_Functions as Static
 class CapFreqWidget (QTabWidget):
     # This signal needs to be defined before the __init__ in order to allow it to work
     stop_measurement_worker = pyqtSignal()
+    start_measuring = pyqtSignal()
 
     def __init__(self, lcr: AgilentE4980A, measuring_thread=QThread(), ui_path='./src/ui/cap_freq_tabs.ui'):
         super().__init__()
@@ -146,7 +147,7 @@ class CapFreqWidget (QTabWidget):
         self.stop_measurement_worker.connect(self.measuring_worker.stop_early)
         self.measuring_worker.freq_step_finished.connect(self.update_measurement_progress)
         self.measuring_thread.finished.connect(self.end_measurement)
-        self.measuring_thread.started.connect(self.measuring_worker.measure)
+        self.start_measuring.connect(self.measuring_worker.measure)
         self.lcr.new_data.connect(self.plot_new_points)
 
     def init_measure_worker(self):
@@ -430,7 +431,7 @@ class CapFreqWidget (QTabWidget):
         self.enable_live_plots = True
 
         # Emit signal to start the worker measuring
-        self.measuring_thread.start()
+        self.start_measuring.emit()
 
     # When the worker says it is done, save data and reset widget state to interactive
     def end_measurement(self):

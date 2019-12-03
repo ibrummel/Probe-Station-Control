@@ -224,10 +224,16 @@ class CapFreqTempMeasureWorkerObject (CapFreqMeasureWorkerObject):
 
     # ToDo: Override all functions called in the measure method to give temperature measurements as well.
 
-# app = QApplication(sys.argv)
-#
-# lcr = visa.ResourceManager().open_resource('GPIB0:18::INSTR')
-# sun = visa.ResourceManager().open_resource('GPIB0::6::INSTR')
-# main_window = CapFreqTempWidget()
-# main_window.show()
-# sys.exit(app.exec_())
+try:
+    standalone = sys.argv[1]
+except IndexError:
+    standalone = False
+
+if standalone:
+    lcr = AgilentE4980A(parent=None, gpib_addr='GPIB0::18::INSTR')
+    sun = SunEC1xChamber(parent=None, gpib_addr='GPIB0::6::INSTR')
+    app = QApplication(sys.argv)
+    print('Capacitance-Frequency-Temperature')
+    main_window = CapFreqTempWidget(lcr=lcr, sun=sun, move_lcr=True)
+    main_window.show()
+    sys.exit(app.exec_())

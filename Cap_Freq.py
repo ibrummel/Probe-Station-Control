@@ -1,3 +1,5 @@
+import sys
+
 from PyQt5 import uic
 from PyQt5.QtWidgets import (QWidget, QComboBox, QLineEdit, QLabel, QGroupBox, QTableWidget,
                              QTableWidgetItem, QTabWidget, QMessageBox, QToolButton, QApplication,
@@ -10,9 +12,9 @@ import pandas as pd
 from datetime import datetime
 import numpy as np
 from Live_Data_Plotter import LivePlotWidget
-from Agilent_E4980A import AgilentE4980A
+# from Agilent_E4980A import AgilentE4980A
 # Can be used to emulate the LCR without connection data will be garbage (random numbers)
-#from fake_E4980 import AgilentE4980A
+from fake_E4980 import AgilentE4980A
 import Agilent_E4980A_Constants as Const
 from File_Print_Headers import *
 import Static_Functions as Static
@@ -355,7 +357,7 @@ class CapFreqWidget (QTabWidget):
     def on_start_stop_clicked(self):
         # Get the sender
         btn = self.sender()
-        # If the sender is not checked (trying to start the measurement)
+        # If the sender is checked (trying to start the measurement)
         if btn.isChecked():
             # Set both buttons to checked
             self.btn_setup_start_stop.setChecked(True)
@@ -367,7 +369,7 @@ class CapFreqWidget (QTabWidget):
             self.btn_run_start_stop.setText('Stop Measurements')
             # Start the measurement
             self.start_measurement()
-        # If the sender is checked (User has cancelled measurement)po0909o0poi9o
+        # If the sender is not checked (User has cancelled measurement)po0909o0poi9o
         elif not btn.isChecked():
             # Set both buttons to unchecked
             self.btn_setup_start_stop.setChecked(False)
@@ -382,6 +384,7 @@ class CapFreqWidget (QTabWidget):
 
     def halt_measurement(self):
         self.stop_measurement_worker.emit()
+        self.enable_live_plots = False
 
     def start_measurement(self):
         self.set_save_file_path_by_line()
@@ -630,3 +633,17 @@ class CapFreqMeasureWorkerObject (QObject):
 
         self.stop = False
         self.measurement_finished.emit()
+
+
+try:
+    standalone = sys.argv[1]
+except IndexError:
+    standalone = False
+
+if standalone:
+    lcr = AgilentE4980A(parent=None, gpib_addr='GPIB0::18::INSTR')
+    app = QApplication(sys.argv)
+    print('Capacitance-Frequency')
+    main_window = CapFreqWidget(lcr=lcr)
+    main_window.show()
+    sys.exit(app.exec_())

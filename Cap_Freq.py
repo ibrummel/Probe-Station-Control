@@ -22,7 +22,7 @@ class CapFreqWidget (QTabWidget):
     # This signal needs to be defined before the __init__ in order to allow it to work
     stop_measurement_worker = pyqtSignal()
 
-    def __init__(self, lcr: AgilentE4980A, ui_path='./src/ui/cap_freq_tabs.ui'):
+    def __init__(self, lcr: AgilentE4980A, measuring_thread=QThread(), ui_path='./src/ui/cap_freq_tabs.ui'):
         super().__init__()
 
         # Define class variables and objects
@@ -43,6 +43,9 @@ class CapFreqWidget (QTabWidget):
         self.data_dict = {}
         self.header_dict = {}
         self.save_file_path = os.path.join(os.getenv('USERPROFILE'), 'Desktop')
+
+        # Pull in measuring thread and initialize worker object
+        self.measuring_thread = measuring_thread
 
         # Tiny bit of initial instrument setup
         self.lcr.dc_bias_state('on')
@@ -99,7 +102,7 @@ class CapFreqWidget (QTabWidget):
         self.lbl_val1 = self.findChild(QLabel, 'lbl_val1')
         self.gbox_val2 = self.findChild(QGroupBox, 'gbox_val2')
         self.lbl_val2 = self.findChild(QLabel, 'lbl_val2')
-        self.gbox_curr_freq = self.findChild(QGroupBox, 'gbox_curr_freg')
+        self.gbox_curr_freq = self.findChild(QGroupBox, 'gbox_curr_freq')
         self.lbl_curr_freq = self.findChild(QLabel, 'lbl_curr_freq')
 
         self.live_plot = self.findChild(LivePlotWidget, 'live_plot')
@@ -147,8 +150,6 @@ class CapFreqWidget (QTabWidget):
         self.lcr.new_data.connect(self.plot_new_points)
 
     def init_measure_worker(self):
-        # Create a thread to use for measuring data
-        self.measuring_thread = QThread()
         self.measuring_worker = CapFreqMeasureWorkerObject(self)
         self.measuring_worker.moveToThread(self.measuring_thread)
         self.lcr.moveToThread(self.measuring_thread)

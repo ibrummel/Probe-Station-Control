@@ -1,5 +1,6 @@
 import sys
 
+from PyQt5.QtCore import QThread
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTabWidget
 import visa
 from pyvisa.errors import VisaIOError
@@ -26,8 +27,12 @@ class ProbeStationControlMainWindow(QMainWindow):
         self.instruments['sun'] = SunEC1xChamber(parent=self, gpib_addr=self.instruments['sun'])
         # Add connections to other instruments as needed.
 
-        self.cap_freq = CapFreqWidget(self.instruments['lcr'])
-        self.cap_freq_temp = CapFreqTempWidget(self.instruments['lcr'], self.instruments['sun'])
+        # Create a thread for all the measuring widgets to use
+        self.measuring_thread = QThread()
+
+        self.cap_freq = CapFreqWidget(lcr=self.instruments['lcr'], measuring_thread=self.measuring_thread)
+        self.cap_freq_temp = CapFreqTempWidget(lcr=self.instruments['lcr'], sun=self.instruments['sun'],
+                                               move_lcr=False, measuring_thread=self.measuring_thread)
 
         self.tabs_meas_types = QTabWidget()
         self.tabs_meas_types.addTab(self.cap_freq, 'Capacitance-Frequency')

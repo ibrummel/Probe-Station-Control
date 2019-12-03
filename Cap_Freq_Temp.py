@@ -17,10 +17,11 @@ from PyQt5.QtWidgets import QLineEdit, QLabel, QGroupBox, QRadioButton, QApplica
 
 class CapFreqTempWidget(CapFreqWidget):
 
-    def __init__(self, lcr: AgilentE4980A, sun: SunEC1xChamber):
+    def __init__(self, lcr: AgilentE4980A, sun: SunEC1xChamber, move_lcr=True, measuring_thread=QThread()):
 
         self.sun = sun
-        super().__init__(lcr, './src/ui/cap_freq_temp_tabs.ui')
+        self.move_lcr = move_lcr
+        super().__init__(lcr, measuring_thread, './src/ui/cap_freq_temp_tabs.ui')
         self.dwell = 10
         self.ramp = 5
         self.stab_int = 5
@@ -49,12 +50,13 @@ class CapFreqTempWidget(CapFreqWidget):
         self.init_connections()
 
     def init_measure_worker(self):
-        self.measuring_thread = QThread()
+        # Initialize worker object and move instruments to the worker thread.
         self.measuring_worker = CapFreqTempMeasureWorkerObject(self)
         print('moving worker')
         self.measuring_worker.moveToThread(self.measuring_thread)
-        print('moving lcr')
-        self.lcr.moveToThread(self.measuring_thread)
+        if self.move_lcr:
+            print('moving lcr')
+            self.lcr.moveToThread(self.measuring_thread)
         print('moving sun')
         self.sun.moveToThread(self.measuring_thread)
 

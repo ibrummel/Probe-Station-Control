@@ -12,9 +12,9 @@ import pandas as pd
 from datetime import datetime
 import numpy as np
 from Live_Data_Plotter import LivePlotWidget
-# from Agilent_E4980A import AgilentE4980A
+from Agilent_E4980A import AgilentE4980A
 # Can be used to emulate the LCR without connection data will be garbage (random numbers)
-from fake_E4980 import AgilentE4980A
+# from fake_E4980 import AgilentE4980A
 import Agilent_E4980A_Constants as Const
 from File_Print_Headers import *
 import Static_Functions as Static

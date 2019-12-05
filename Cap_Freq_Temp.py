@@ -8,12 +8,13 @@ from PyQt5.QtCore import QThread
 from Sun_EC1X import SunEC1xChamber
 # from fake_sun import SunEC1xChamber
 from Cap_Freq import CapFreqWidget, CapFreqMeasureWorkerObject
-from Agilent_E4980A import AgilentE4980A
-# from fake_E4980 import AgilentE4980A
+# from Agilent_E4980A import AgilentE4980A
+from fake_E4980 import AgilentE4980A
 from File_Print_Headers import *
 from statistics import stdev, mean
 import pandas as pd
 from time import sleep
+from pyvisa.errors import VisaIOError
 from PyQt5.QtWidgets import QLineEdit, QLabel, QGroupBox, QRadioButton, QApplication
 
 
@@ -37,10 +38,15 @@ class CapFreqTempWidget(CapFreqWidget):
 
         self.gbox_thermal_settings = self.findChild(QGroupBox, 'gbox_thermal_settings')
         self.ln_ramp = self.findChild(QLineEdit, 'ln_ramp')
+        self.ln_ramp.setText('5.0')
         self.ln_dwell = self.findChild(QLineEdit, 'ln_dwell')
+        self.ln_dwell.setText('10')
         self.ln_stab_int = self.findChild(QLineEdit, 'ln_stab_int')
+        self.ln_stab_int.setText('5')
         self.ln_temp_tol = self.findChild(QLineEdit, 'ln_temp_tol')
+        self.ln_temp_tol.setText('0.5')
         self.ln_stdev_tol = self.findChild(QLineEdit, 'ln_stdev_tol')
+        self.ln_stdev_tol.setText('0.2')
 
         self.radio_chamber_tc = self.findChild(QRadioButton, 'radio_chamber_tc')
         self.radio_user_tc = self.findChild(QRadioButton, 'radio_user_tc')
@@ -56,11 +62,10 @@ class CapFreqTempWidget(CapFreqWidget):
         self.measuring_worker = CapFreqTempMeasureWorkerObject(self)
         print('moving worker')
         self.measuring_worker.moveToThread(self.measuring_thread)
-        # if self.move_lcr:
-        #     print('moving lcr')
-        #     self.lcr.moveToThread(self.measuring_thread)
-        # print('moving sun')
-        # self.sun.moveToThread(self.measuring_thread)
+        print('moving lcr')
+        self.lcr.moveToThread(self.measuring_thread)
+        print('moving sun')
+        self.sun.moveToThread(self.measuring_thread)
 
     def init_setup_table(self):
         super().init_setup_table()
@@ -92,10 +97,13 @@ class CapFreqTempWidget(CapFreqWidget):
         super().update_live_readout(data)
         # Going to try directly getting the temperature in this function,
         #  should keep compatibility simple.
-        if self.radio_chamber_tc.isChecked():
-            self.lbl_curr_temp.setText(str(self.sun.get_temp()))
-        elif self.radio_user_tc.isChecked():
-            self.lbl_curr_temp.setText(str(self.sun.get_user_temp()))
+        try:
+            if self.radio_chamber_tc.isChecked():
+                self.lbl_curr_temp.setText(str(self.sun.get_temp()))
+            elif self.radio_user_tc.isChecked():
+                self.lbl_curr_temp.setText(str(self.sun.get_user_temp()))
+        except VisaIOError:
+            print('Error on getting temperature from sun chamber')
 
     def get_header_vars(self, index, row):
         header_vars = super().get_header_vars(index, row)
@@ -171,7 +179,7 @@ class CapFreqTempMeasureWorkerObject (CapFreqMeasureWorkerObject):
 
     def return_instr_to_main_thread(self):
         self.lcr.moveToThread(QApplication.instance().thread())
-        self.sun.moveToThread(QApplication.instance().thread())
+        # self.sun.moveToThread(QApplication.instance().thread())
 
     def blocking_func(self):
         user_T = []
@@ -186,24 +194,34 @@ class CapFreqTempMeasureWorkerObject (CapFreqMeasureWorkerObject):
             while check_temp < self.step_temp:
                 check_temp = float(self.parent.sun.get_temp())
                 sleep(1)
+                if self.stop:
+                    break
         elif self.step_temp < check_temp:
             while check_temp > self.step_temp:
                 check_temp = float(self.parent.sun.get_temp())
                 sleep(1)
+                if self.stop:
+                    break
 
         # After reaching setpoint, check stability
         # ToDo: Make the print statements here appear in a pop-up with a progress bar
         print('Beginning temperature stability check...')
         count = 0
-        for i in range(0, self.parent.dwell * 60):
+        for i in range(0, int(self.parent.dwell * 60)):
+            print('*', end='')
             if count % self.parent.stab_int == 0:
                 user_T.append(self.parent.sun.get_user_temp())
+                sleep(0.1)
                 chamber_T.append(self.parent.sun.get_temp())
-                print('.', end=' ')
-            else:
-                print('.', end='')
+                if self.parent.radio_chamber_tc.isChecked():
+                    self.parent.lbl_curr_temp.setText(str(chamber_T[-1]))
+                elif self.parent.radio_user_tc.isChecked():
+                    self.parent.lbl_curr_temp.setText(str(user_T[-1]))
+                print(' ', end='')
             count += 1
             sleep(1)
+            if self.stop:
+                break
         print('Temperature equilibration complete.')
 
         self.user_avg = mean(user_T)
@@ -214,8 +232,12 @@ class CapFreqTempMeasureWorkerObject (CapFreqMeasureWorkerObject):
         temp_tol = float(self.parent.ln_temp_tol.text())
         stdev_tol = float(self.parent.ln_stdev_tol.text())
 
-        if self.user_avg > temp_tol or self.chamber_avg > temp_tol or self.user_stdev > stdev_tol or self.chamber_stdev > stdev_tol:
+        if abs(self.chamber_avg -  self.step_temp) > temp_tol or self.chamber_stdev > stdev_tol:
+            print('Temperature ({delta} vs {deltol}) or standard deviation ({stdev} vs {stdevtol}) outside of tolerance.'
+                  .format(delta=abs(self.chamber_avg-self.step_temp), deltol=self.temp_tol,
+                          stdev=self.chamber_stdev, stdevtol=stdev_tol))
             self.blocking_func()
+        print('Temperature readings within tolerance')
 
         # Add the standard measurement delay from cap freq
         super().blocking_func()

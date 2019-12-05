@@ -1,6 +1,7 @@
 import visa
 from pyvisa.errors import  VisaIOError
 from PyQt5.QtCore import QObject, pyqtSignal
+from time import sleep
 
 
 class SunEC1xChamber(QObject):

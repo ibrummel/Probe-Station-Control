@@ -169,7 +169,11 @@ class AgilentE4980A(QObject):
         data = self.lcr.query(':FETC?')
         data = data.rstrip().split(',')
 
-        data = [float(x) for x in data]
+        try:
+            data = [float(x) for x in data]
+        except ValueError:
+            print("Unable to read data from LCR - Float conversion error")
+            self.get_data()
         freq = self.get_signal_frequency()
 
         data.insert(0, freq)

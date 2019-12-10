@@ -12,9 +12,9 @@ import pandas as pd
 from datetime import datetime
 import numpy as np
 from Live_Data_Plotter import LivePlotWidget
-from Agilent_E4980A import AgilentE4980A
+# from Agilent_E4980A import AgilentE4980A
 # Can be used to emulate the LCR without connection data will be garbage (random numbers)
-# from fake_E4980 import AgilentE4980A
+from fake_E4980 import AgilentE4980A
 import Agilent_E4980A_Constants as Const
 from File_Print_Headers import *
 import Static_Functions as Static
@@ -405,6 +405,9 @@ class CapFreqWidget (QTabWidget):
                 cancel = QMessageBox.information(self, 'Measurement canceled',
                                                  'Measurement cancelled by user.',
                                                  QMessageBox.Ok, QMessageBox.Ok)
+                self.btn_setup_start_stop.setChecked(False)
+                self.btn_run_start_stop.setChecked(False)
+                self.halt_measurement()
                 if cancel == QMessageBox.Ok:
                     return
         elif self.save_file_path == os.path.join(os.getenv('USERPROFILE'), 'Desktop') or self.save_file_path == '':
@@ -463,8 +466,10 @@ class CapFreqWidget (QTabWidget):
         self.btn_run_start_stop.setText('Start Measurements')
 
     def return_to_defaults(self):
+        print('Returning lcr to defaults')
         self.lcr.dc_bias_level('voltage', 0)
-        self.lcr.signal_level('voltage', 0.05)
+        # FixMe: Should I not set this to 0 for some reason? Originally at 50mV
+        self.lcr.signal_level('voltage', 0)
         self.lcr.signal_frequency(1000)
 
     def save_data(self):

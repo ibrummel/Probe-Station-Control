@@ -12,9 +12,9 @@ import pandas as pd
 from datetime import datetime
 import numpy as np
 from Live_Data_Plotter import LivePlotWidget
-# from Agilent_E4980A import AgilentE4980A
+from Agilent_E4980A import AgilentE4980A
 # Can be used to emulate the LCR without connection data will be garbage (random numbers)
-from fake_E4980 import AgilentE4980A
+# from fake_E4980 import AgilentE4980A
 import Agilent_E4980A_Constants as Const
 from File_Print_Headers import *
 import Static_Functions as Static
@@ -359,6 +359,7 @@ class CapFreqWidget (QTabWidget):
     def on_start_stop_clicked(self):
         # Get the sender
         btn = self.sender()
+        print('Start stop button pressed')
         # If the sender is checked (trying to start the measurement)
         if btn.isChecked():
             # Set both buttons to checked
@@ -635,20 +636,17 @@ class CapFreqMeasureWorkerObject (QObject):
 
                 # Emit signal to update progress bar
                 self.freq_step_finished.emit([int(index.split('M')[-1]), step_idx])
-                QApplication.processEvents()  # Checks if measurement has been stopped.
                 if self.stop:
                     break
-            if self.stop:
-                break
 
             # Store the measurement data in a field of the tests_df
             self.parent.header_dict[index] = self.parent.generate_header(index, row)
-            # ToDo: Verify that this doesn't need to be a copy line. I think the data has been
-            #  changing with each measurement.... I hope.
             self.parent.data_dict[index] = self.data_df
-            self.measurement_cleanup()
+            if self.stop:
+                break
 
         self.stop = False
+        self.measurement_cleanup()
         self.measurement_finished.emit()
 
 

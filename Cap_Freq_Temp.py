@@ -15,7 +15,7 @@ from statistics import stdev, mean
 import pandas as pd
 from time import sleep
 from pyvisa.errors import VisaIOError
-from PyQt5.QtWidgets import QLineEdit, QLabel, QGroupBox, QRadioButton, QApplication
+from PyQt5.QtWidgets import QLineEdit, QLabel, QGroupBox, QRadioButton, QApplication, QCheckBox
 
 
 class CapFreqTempWidget(CapFreqWidget):
@@ -47,6 +47,10 @@ class CapFreqTempWidget(CapFreqWidget):
         self.ln_temp_tol.setText('0.5')
         self.ln_stdev_tol = self.findChild(QLineEdit, 'ln_stdev_tol')
         self.ln_stdev_tol.setText('0.2')
+        self.check_z_stability = self.findChild(QCheckBox, 'check_z_stability')
+        self.ln_z_stdev_tol = self.findChild(QLineEdit, 'ln_z_stdev_tol')
+        self.ln_z_stdev_tol.setText('500')
+        self.check_return_to_rt = self.findChild(QCheckBox, 'check_return_to_rt')
 
         self.radio_chamber_tc = self.findChild(QRadioButton, 'radio_chamber_tc')
         self.radio_user_tc = self.findChild(QRadioButton, 'radio_user_tc')
@@ -131,13 +135,11 @@ class CapFreqTempWidget(CapFreqWidget):
                                              ramp=header_vars['ramp'],
                                              dwell=header_vars['dwell'],
                                              stab_int=header_vars['stab_int'],
-                                             # ToDo: Verify that these values can be pulled this way. It is
-                                             #  going to be way easier if they are. Should be set correctly by
-                                             #  the time this function is called.
                                              user_avg=self.measuring_worker.user_avg,
                                              user_stdev=self.measuring_worker.user_stdev,
                                              chamber_avg=self.measuring_worker.chamber_avg,
                                              chamber_stdev=self.measuring_worker.chamber_stdev,
+                                             z_stdev=self.measuring_worker.z_stdev,
                                              notes='Notes:\t{}'.format(header_vars['notes']))
 
         return header
@@ -147,7 +149,7 @@ class CapFreqTempWidget(CapFreqWidget):
         self.gbox_thermal_settings.setEnabled(enable)
 
 
-class CapFreqTempMeasureWorkerObject (CapFreqMeasureWorkerObject):
+class CapFreqTempMeasureWorkerObject(CapFreqMeasureWorkerObject):
 
     def __init__(self, parent: CapFreqTempWidget):
         super().__init__(parent)
@@ -157,6 +159,7 @@ class CapFreqTempMeasureWorkerObject (CapFreqMeasureWorkerObject):
         self.chamber_avg = 0
         self.user_stdev = 0
         self.chamber_stdev = 0
+        self.z_stdev = 0
 
     # Don't need to override as we aren't adding data to each line, just the
     #  header.
@@ -181,9 +184,15 @@ class CapFreqTempMeasureWorkerObject (CapFreqMeasureWorkerObject):
         self.lcr.moveToThread(QApplication.instance().thread())
         # self.sun.moveToThread(QApplication.instance().thread())
 
+    def measurement_cleanup(self):
+        if self.parent.check_return_to_rt.isChecked():
+            self.parent.sun.set_setpoint(25.0)
+            print('Sun setpoint moved to 25C.')
+
     def blocking_func(self):
         user_T = []
         chamber_T = []
+        z = []
 
         # Send the command to change the temperature
         self.parent.sun.set_setpoint(self.step_temp)
@@ -213,6 +222,7 @@ class CapFreqTempMeasureWorkerObject (CapFreqMeasureWorkerObject):
                 user_T.append(self.parent.sun.get_user_temp())
                 sleep(0.1)
                 chamber_T.append(self.parent.sun.get_temp())
+                z.append(self.parent.lcr.get_data()[1])
                 if self.parent.radio_chamber_tc.isChecked():
                     self.parent.lbl_curr_temp.setText(str(chamber_T[-1]))
                 elif self.parent.radio_user_tc.isChecked():
@@ -228,33 +238,27 @@ class CapFreqTempMeasureWorkerObject (CapFreqMeasureWorkerObject):
         self.user_stdev = stdev(user_T, self.user_avg)
         self.chamber_avg = mean(chamber_T)
         self.chamber_stdev = stdev(chamber_T, self.chamber_avg)
+        self.z_stdev = stdev(z, mean(z))
 
         temp_tol = float(self.parent.ln_temp_tol.text())
         stdev_tol = float(self.parent.ln_stdev_tol.text())
+        z_stdev_tol = float(self.parent.ln_z_stdev_tol.text())
 
-        if abs(self.chamber_avg -  self.step_temp) > temp_tol or self.chamber_stdev > stdev_tol:
-            print('Temperature ({delta} vs {deltol}) or standard deviation ({stdev} vs {stdevtol}) outside of tolerance.'
-                  .format(delta=abs(self.chamber_avg-self.step_temp), deltol=self.temp_tol,
-                          stdev=self.chamber_stdev, stdevtol=stdev_tol))
+        if abs(self.chamber_avg - self.step_temp) > temp_tol or self.chamber_stdev > stdev_tol:
+            print('Temperature ({delta} vs {deltol}) or standard deviation ({stdev} vs {stdevtol}) '
+                  'outside of tolerance.'.format(delta=abs(self.chamber_avg - self.step_temp), deltol=self.temp_tol,
+                                                 stdev=self.chamber_stdev, stdevtol=stdev_tol))
             self.blocking_func()
         print('Temperature readings within tolerance')
+        if self.parent.check_z_stability.isChecked():
+            if self.z_stdev > z_stdev_tol:
+                print('Impedance variation outside of tolerance: Tolerance={tol}, Measured Stdev={stdev}'
+                      .format(tol=z_stdev_tol, stdev=self.z_stdev))
+                self.blocking_func()
+            print('Impedance stability within tolerance.')
 
         # Add the standard measurement delay from cap freq
         super().blocking_func()
-
-    # Not adding data to each value line for now. Just to the measurement header.
-    # def read_new_data(self):
-    #     # Read the LCR and append temperature data
-    #     data = self.parent.lcr.get_data()
-    #     # ToDo: Should temperature be recorded with each step?
-    #     data.append(self.chamber_avg)
-    #     data.append(self.chamber_stdev)
-    #     data.append(self.user_avg)
-    #     data.append(self.user_stdev)
-    #
-    #     data = pd.Series(data, index=self.data_df.columns)
-
-    # ToDo: Override all functions called in the measure method to give temperature measurements as well.
 
 
 try:

@@ -49,12 +49,18 @@
            </property>
           </widget>
          </item>
+         <item row="1" column="1">
+          <widget class="QComboBox" name="combo_meas_time"/>
+         </item>
          <item row="2" column="0">
           <widget class="QLabel" name="lbl_data_averaging">
            <property name="text">
             <string>Data Averaging:</string>
            </property>
           </widget>
+         </item>
+         <item row="2" column="1">
+          <widget class="QLineEdit" name="ln_data_averaging"/>
          </item>
          <item row="3" column="0">
           <widget class="QLabel" name="lbl_num_pts">
@@ -63,12 +69,18 @@
            </property>
           </widget>
          </item>
+         <item row="3" column="1">
+          <widget class="QLineEdit" name="ln_num_pts"/>
+         </item>
          <item row="4" column="0">
           <widget class="QLabel" name="lbl_step_delay">
            <property name="text">
             <string>Per Step Delay:</string>
            </property>
           </widget>
+         </item>
+         <item row="4" column="1">
+          <widget class="QLineEdit" name="ln_step_delay"/>
          </item>
          <item row="5" column="0">
           <widget class="QLabel" name="lbl_range">
@@ -77,12 +89,18 @@
            </property>
           </widget>
          </item>
+         <item row="5" column="1">
+          <widget class="QComboBox" name="combo_range"/>
+         </item>
          <item row="6" column="0">
           <widget class="QLabel" name="lbl_signal_type">
            <property name="text">
             <string>Signal Type:</string>
            </property>
           </widget>
+         </item>
+         <item row="6" column="1">
+          <widget class="QComboBox" name="combo_signal_type"/>
          </item>
          <item row="7" column="0">
           <widget class="QLabel" name="lbl_bias_type">
@@ -91,6 +109,9 @@
            </property>
           </widget>
          </item>
+         <item row="7" column="1">
+          <widget class="QComboBox" name="combo_bias_type"/>
+         </item>
          <item row="8" column="0">
           <widget class="QLabel" name="lbl_notes">
            <property name="text">
@@ -98,36 +119,15 @@
            </property>
           </widget>
          </item>
+         <item row="8" column="1">
+          <widget class="QLineEdit" name="ln_notes"/>
+         </item>
          <item row="9" column="0">
           <widget class="QLabel" name="lbl_save_file">
            <property name="text">
             <string>Save Location:</string>
            </property>
           </widget>
-         </item>
-         <item row="1" column="1">
-          <widget class="QComboBox" name="combo_meas_time"/>
-         </item>
-         <item row="2" column="1">
-          <widget class="QLineEdit" name="ln_data_averaging"/>
-         </item>
-         <item row="3" column="1">
-          <widget class="QLineEdit" name="ln_num_pts"/>
-         </item>
-         <item row="4" column="1">
-          <widget class="QLineEdit" name="ln_step_delay"/>
-         </item>
-         <item row="5" column="1">
-          <widget class="QComboBox" name="combo_range"/>
-         </item>
-         <item row="6" column="1">
-          <widget class="QComboBox" name="combo_signal_type"/>
-         </item>
-         <item row="7" column="1">
-          <widget class="QComboBox" name="combo_bias_type"/>
-         </item>
-         <item row="8" column="1">
-          <widget class="QLineEdit" name="ln_notes"/>
          </item>
          <item row="9" column="1">
           <layout class="QHBoxLayout" name="layout_save_file">
@@ -152,6 +152,9 @@
          <string>Thermal Management Settings</string>
         </property>
         <layout class="QFormLayout" name="formLayout_3">
+         <property name="labelAlignment">
+          <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+         </property>
          <item row="0" column="0">
           <widget class="QLabel" name="lbl_ramp">
            <property name="text">
@@ -195,6 +198,9 @@
            </property>
           </widget>
          </item>
+         <item row="3" column="1">
+          <widget class="QLineEdit" name="ln_temp_tol"/>
+         </item>
          <item row="4" column="0">
           <widget class="QLabel" name="lbl_stdev_tol">
            <property name="text">
@@ -202,11 +208,61 @@
            </property>
           </widget>
          </item>
-         <item row="3" column="1">
-          <widget class="QLineEdit" name="ln_temp_tol"/>
-         </item>
          <item row="4" column="1">
           <widget class="QLineEdit" name="ln_stdev_tol"/>
+         </item>
+         <item row="5" column="0">
+          <widget class="QLabel" name="lbl_z_stability">
+           <property name="text">
+            <string>Verify Impedance
+Stability:</string>
+           </property>
+          </widget>
+         </item>
+         <item row="5" column="1">
+          <layout class="QHBoxLayout" name="horizontalLayout_9" stretch="0,1">
+           <item>
+            <widget class="QCheckBox" name="check_z_stability">
+             <property name="text">
+              <string/>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <layout class="QFormLayout" name="formLayout_4">
+             <property name="formAlignment">
+              <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+             </property>
+             <item row="0" column="0">
+              <widget class="QLabel" name="lbl_z_stdev_tol">
+               <property name="text">
+                <string>Z Variation Tolerance:</string>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="1">
+              <widget class="QLineEdit" name="ln_z_stdev_tol"/>
+             </item>
+            </layout>
+           </item>
+          </layout>
+         </item>
+         <item row="6" column="0">
+          <widget class="QLabel" name="lbl_return_to_rt">
+           <property name="text">
+            <string>Return to RT?</string>
+           </property>
+          </widget>
+         </item>
+         <item row="6" column="1">
+          <widget class="QCheckBox" name="check_return_to_rt">
+           <property name="text">
+            <string/>
+           </property>
+           <property name="checked">
+            <bool>true</bool>
+           </property>
+          </widget>
          </item>
         </layout>
        </widget>

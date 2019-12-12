@@ -32,6 +32,7 @@ CAP_FREQ_TEMP_HEADER = ('**********************************'
                         '\nUser Probe Std. Deviation [°C]:\t{user_stdev}'
                         '\nChamber Probe Average T [°C]:\t{chamber_avg}'
                         '\nChamber Probe Std. Deviation [°C]:\t{chamber_stdev}'
+                        '\nImpedance Value Standard Deviation [Ohm]:\t{z_stdev}'
                         '\n***********Sample Notes***********'
                         '\n{notes}'
                         '\n************End Header************\n\n')

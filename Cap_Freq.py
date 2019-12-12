@@ -573,6 +573,9 @@ class CapFreqMeasureWorkerObject (QObject):
     def return_instr_to_main_thread(self):
         self.lcr.moveToThread(QApplication.instance().thread())
 
+    def measurement_cleanup(self):
+        pass
+
     def measure(self):
         # Write configured parameters to lcr
         self.parent.setup_lcr()
@@ -638,6 +641,7 @@ class CapFreqMeasureWorkerObject (QObject):
             # ToDo: Verify that this doesn't need to be a copy line. I think the data has been
             #  changing with each measurement.... I hope.
             self.parent.data_dict[index] = self.data_df
+            self.measurement_cleanup()
 
         self.stop = False
         self.measurement_finished.emit()

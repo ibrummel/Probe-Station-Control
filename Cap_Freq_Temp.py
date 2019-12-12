@@ -11,7 +11,7 @@ from Cap_Freq import CapFreqWidget, CapFreqMeasureWorkerObject
 from Agilent_E4980A import AgilentE4980A
 # from fake_E4980 import AgilentE4980A
 from File_Print_Headers import *
-from statistics import stdev, mean
+from statistics import stdev, mean, StatisticsError
 import pandas as pd
 from time import sleep
 import datetime
@@ -233,15 +233,24 @@ class CapFreqTempMeasureWorkerObject(CapFreqMeasureWorkerObject):
             sleep(1)
             print("Stability Check in Progress {} remaining".format(str(datetime.timedelta(seconds=int(self.parent.dwell * 60)-i)), end="\r"))
             if self.stop:
-                # ToDo: Maybe this should be replaced in all instances with self.quit to stop all operations on the thread?
                 break
+        if self.stop:
+            return
         print("Temperature equilibration complete. {} remaining".format(str(datetime.timedelta(seconds=0)), end="\r"))
 
-        self.user_avg = mean(user_T)
-        self.user_stdev = stdev(user_T, self.user_avg)
-        self.chamber_avg = mean(chamber_T)
-        self.chamber_stdev = stdev(chamber_T, self.chamber_avg)
-        self.z_stdev = stdev(z, mean(z))
+        try:
+            self.user_avg = mean(user_T)
+            self.user_stdev = stdev(user_T, self.user_avg)
+            self.chamber_avg = mean(chamber_T)
+            self.chamber_stdev = stdev(chamber_T, self.chamber_avg)
+            self.z_stdev = stdev(z, mean(z))
+        except StatisticsError:
+            print('Error on performing statistics calculations.')
+            self.user_avg = 99999
+            self.user_stdev = 99999
+            self.chamber_avg = 99999
+            self.chamber_stdev = 99999
+            self.z_stdev = 99999
 
         temp_tol = float(self.parent.ln_temp_tol.text())
         stdev_tol = float(self.parent.ln_stdev_tol.text())

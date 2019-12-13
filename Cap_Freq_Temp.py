@@ -207,6 +207,7 @@ class CapFreqTempMeasureWorkerObject(CapFreqMeasureWorkerObject):
         # After reaching setpoint, check stability
         # ToDo: Make the print statements here appear in a pop-up with a progress bar
         print('Beginning temperature stability check at {temp}...'.format(temp=self.step_temp))
+        self.parent.enable_live_plots = False
         count = 0
         for i in range(0, int(self.parent.dwell * 60)):
             if count % self.parent.stab_int == 0:
@@ -227,6 +228,7 @@ class CapFreqTempMeasureWorkerObject(CapFreqMeasureWorkerObject):
         if self.stop:
             return
         print("Temperature equilibration complete. {} remaining".format(str(datetime.timedelta(seconds=0)), end="\r"))
+        self.parent.enable_live_plots = True
 
         try:
             self.user_avg = mean(user_T)

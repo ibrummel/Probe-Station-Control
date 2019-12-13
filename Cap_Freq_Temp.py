@@ -162,17 +162,6 @@ class CapFreqTempMeasureWorkerObject(CapFreqMeasureWorkerObject):
         self.chamber_stdev = 0
         self.z_stdev = 0
 
-    # Don't need to override as we aren't adding data to each line, just the
-    #  header.
-    # def get_out_columns(self):
-    #     columns = super().get_out_columns()
-    #     columns.append('Chamber Temp [°C]')
-    #     columns.append('Chamber Std Dev [°C]')
-    #     columns.append('User Temp [°C]')
-    #     columns.append('User Std Dev [°C]')
-    #
-    #     return columns
-
     def set_test_params(self, row):
         super().set_test_params(row)
         self.step_temp = float(row[self.parent.meas_setup_hheaders[5]])
@@ -231,7 +220,8 @@ class CapFreqTempMeasureWorkerObject(CapFreqMeasureWorkerObject):
                     self.parent.lbl_curr_temp.setText(str(user_T[-1]))
             count += 1
             sleep(1)
-            print("Stability Check in Progress {} remaining".format(str(datetime.timedelta(seconds=int(self.parent.dwell * 60)-i)), end="\r"))
+            print("Stability Check in Progress {} remaining"
+                  .format(str(datetime.timedelta(seconds=int(self.parent.dwell * 60)-i)), end="\r"))
             if self.stop:
                 break
         if self.stop:
@@ -258,7 +248,7 @@ class CapFreqTempMeasureWorkerObject(CapFreqMeasureWorkerObject):
 
         if abs(self.chamber_avg - self.step_temp) > temp_tol or self.chamber_stdev > stdev_tol:
             print('Temperature ({delta} vs {deltol}) or standard deviation ({stdev} vs {stdevtol}) '
-                  'outside of tolerance.'.format(delta=abs(self.chamber_avg - self.step_temp), deltol=self.temp_tol,
+                  'outside of tolerance.'.format(delta=abs(self.chamber_avg - self.step_temp), deltol=temp_tol,
                                                  stdev=self.chamber_stdev, stdevtol=stdev_tol))
             self.blocking_func()
         print('Temperature readings within tolerance')

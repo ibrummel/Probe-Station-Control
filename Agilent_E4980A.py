@@ -3,7 +3,6 @@ from Agilent_E4980A_Constants import *
 import visa
 from pyvisa.errors import VisaIOError
 from PyQt5.QtCore import QObject, pyqtSignal
-from Instrument_Select_Box import InstrumentSelectBox
 
 
 class AgilentE4980A(QObject):
@@ -14,9 +13,6 @@ class AgilentE4980A(QObject):
         super().__init__(parent)
 
         self.rm = visa.ResourceManager()
-        # ToDo: Finish removing this, errors will show up if the auto connect or value that is fed don't work, but
-        #  not having this run should cut down on startup time.
-        # self.select_box = InstrumentSelectBox(self.rm)
         self.lcr_addr = gpib_addr
 
         if self.lcr_addr is None:
@@ -44,20 +40,25 @@ class AgilentE4980A(QObject):
                     except AttributeError:
                         print('Error closing instrument that should be open')
             except VisaIOError:
-                print('Attempt to get identification string failed. Instrument at {} did not accept ID query'.format(instr))
+                print('Attempt to get identification string failed. Instrument at '
+                      '{} did not accept ID query'.format(instr))
                 curr_instr.close()
-
-    def manual_connect_lcr(self):
-        self.select_box.exec_()
 
     def impedance_range(self, imp_range, write_or_build='write'):
         if imp_range == 'auto':
             command = ':FUNC:IMP:RANG:AUTO ON'
         elif imp_range in VALID_IMP_RANGES:
             command = ':FUNC:IMP:RANG {}'.format(imp_range)
+        else:
+            print('Invalid impedance range supplied.')
+            return
 
         if write_or_build.lower() == 'write':
-            self.lcr.write(command)
+            try:
+                self.lcr.write(command)
+            except VisaIOError as error:
+                print('Error on setting impedance range: {}\nRetrying...'.format(error.abbreviation))
+                self.impedance_range(imp_range)
         elif write_or_build.lower() == 'build':
             return command
 
@@ -66,9 +67,14 @@ class AgilentE4980A(QObject):
             command = ':FUNC:IMP {}'.format(FUNC_DICT[function])
         except KeyError:
             print('Invalid lcr function supplied: {}'.format(function))
+            return
 
         if write_or_build.lower() == 'write':
-            self.lcr.write(command)
+            try:
+                self.lcr.write(command)
+            except VisaIOError as error:
+                print('Error on setting LCR function: {}\nRetrying...'.format(error.abbreviation))
+                self.function(function)
         elif write_or_build.lower() == 'build':
             return command
 
@@ -77,9 +83,14 @@ class AgilentE4980A(QObject):
             command = ':TRIG:SOUR {}'.format(TRIG_SOURCE_DICT[source])
         except KeyError:
             print('Invalid trigger source: {}'.format(source))
+            return
 
         if write_or_build.lower() == 'write':
-            self.lcr.write(command)
+            try:
+                self.lcr.write(command)
+            except VisaIOError as error:
+                print('Error on setting LCR trigger source: {}\nRetrying...'.format(error.abbreviation))
+                self.trigger_source(source)
         elif write_or_build.lower() == 'build':
             return command
 
@@ -87,7 +98,11 @@ class AgilentE4980A(QObject):
         command = ':INIT'
 
         if write_or_build.lower() == 'write':
-            self.lcr.write(command)
+            try:
+                self.lcr.write(command)
+            except VisaIOError as error:
+                print('Error on initializing LCR trigger: {}\nRetrying...'.format(error.abbreviation))
+                self.trigger_init()
         elif write_or_build.lower() == 'build':
             return command
 
@@ -95,7 +110,11 @@ class AgilentE4980A(QObject):
         command = ':TRIG:TDEL {}'.format(delay)
 
         if write_or_build.lower() == 'write':
-            self.lcr.write(command)
+            try:
+                self.lcr.write(command)
+            except VisaIOError as error:
+                print('Error on setting LCR trigger delay: {}\nRetrying...'.format(error.abbreviation))
+                self.trigger_delay(delay)
         elif write_or_build.lower() == 'build':
             return command
 
@@ -103,7 +122,11 @@ class AgilentE4980A(QObject):
         command = ':TRIG:DEL {}'.format(delay)
 
         if write_or_build.lower() == 'write':
-            self.lcr.write(command)
+            try:
+                self.lcr.write(command)
+            except VisaIOError as error:
+                print('Error on setting LCR step delay: {}\nRetrying...'.format(error.abbreviation))
+                self.function(delay)
         elif write_or_build.lower() == 'build':
             return command
 
@@ -112,9 +135,14 @@ class AgilentE4980A(QObject):
             command = ':APER {}, {}'.format(MEASURE_TIME_DICT[time], avg)
         except KeyError:
             print('Invalid measurement time supplied: {}'.format(time))
+            return
 
         if write_or_build.lower() == 'write':
-            self.lcr.write(command)
+            try:
+                self.lcr.write(command)
+            except VisaIOError as error:
+                print('Error on setting LCR measurement aperature: {}\nRetrying...'.format(error.abbreviation))
+                self.function(time, avg)
         elif write_or_build.lower() == 'build':
             return command
 
@@ -122,12 +150,21 @@ class AgilentE4980A(QObject):
         command = ':FREQ {}'.format(freq)
 
         if write_or_build.lower() == 'write':
-            self.lcr.write(command)
+            try:
+                self.lcr.write(command)
+            except VisaIOError as error:
+                print('Error on setting LCR signal frequency: {}\nRetrying...'.format(error.abbreviation))
+                self.signal_frequency(freq)
         elif write_or_build.lower() == 'build':
             return command
 
     def get_signal_frequency(self):
-        freq = self.lcr.query(':FREQ?')
+        try:
+            freq = self.lcr.query(':FREQ?')
+        except VisaIOError as error:
+            print('Error on getting LCR signal frequency: {}\nRetrying...'.format(error.abbreviation))
+            self.get_signal_frequency()
+
         return float(freq)
 
     def signal_level(self, signal_type: str, level, write_or_build='write'):
@@ -135,9 +172,16 @@ class AgilentE4980A(QObject):
             command = ':VOLT {}'.format(level)
         elif signal_type.lower() == 'current':
             command = ':CURR {}'.format(level)
+        else:
+            print('Invalid signal type supplied')
+            return
 
         if write_or_build.lower() == 'write':
-            self.lcr.write(command)
+            try:
+                self.lcr.write(command)
+            except VisaIOError as error:
+                print('Error on setting LCR signal type/level: {}\nRetrying...'.format(error.abbreviation))
+                self.signal_level(signal_type, level)
         elif write_or_build.lower() == 'build':
             return command
     
@@ -150,7 +194,11 @@ class AgilentE4980A(QObject):
         command = ':BIAS:STAT {}'.format(state)
 
         if write_or_build.lower() == 'write':
-            self.lcr.write(command)
+            try:
+                self.lcr.write(command)
+            except VisaIOError as error:
+                print('Error on setting LCR bias state: {}\nRetrying...'.format(error.abbreviation))
+                self.dc_bias_state(state)
         elif write_or_build.lower() == 'build':
             return command
 
@@ -159,20 +207,31 @@ class AgilentE4980A(QObject):
             command = ':BIAS:VOLT {}'.format(level)
         elif bias_type.lower() == 'current':
             command = ':BIAS:CURR {}'.format(level)
+        else:
+            print('Invalid bias type supplied')
+            return
 
         if write_or_build.lower() == 'write':
-            self.lcr.write(command)
+            try:
+                self.lcr.write(command)
+            except VisaIOError as error:
+                print('Error on setting LCR bias level: {}\nRetrying...'.format(error.abbreviation))
+                self.dc_bias_level(bias_type, level)
         elif write_or_build.lower() == 'build':
             return command
 
     def get_data(self):
-        data = self.lcr.query(':FETC?')
+        try:
+            data = self.lcr.query(':FETC?')
+        except VisaIOError as error:
+            print('Error on retrieving data from LCR: {}\nRetrying...'.format(error.abbreviation))
+            self.get_data()
         data = data.rstrip().split(',')
 
         try:
             data = [float(x) for x in data]
         except ValueError:
-            print("Unable to read data from LCR - Float conversion error")
+            print("Unable to read data from LCR - Float conversion error. Retrying...")
             self.get_data()
         freq = self.get_signal_frequency()
 
@@ -180,12 +239,3 @@ class AgilentE4980A(QObject):
 
         self.new_data.emit(data)
         return data
-
-    def get_current_function(self):
-        # FIXME: Add this then use it to set the combo box at start
-        pass
-
-    def get_function_parameters(self):
-        func_params = PARAMETERS_BY_FUNC[self.lcr.query(':FUNC:IMP?').rstrip()]
-
-        return func_params

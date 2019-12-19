@@ -39,10 +39,22 @@ class SunEC1xChamber(QObject):
                     return curr_instr
 
     def get_temp(self):
-        return float(self.sun.query('temp?'))
+        try:
+            return float(self.sun.query('temp?'))
+        except VisaIOError as error:
+            print('Error on getting chamber temp: {}'.format(error.abbreviation))
+            return -9999.0
+
 
     def get_user_temp(self):
-        return float(self.sun.query('uchan?'))
+        try:
+            return float(self.sun.query('uchan?'))
+        except VisaIOError as error:
+            print('Error on getting user temp: {}'.format(error.abbreviation))
+            return -9999.0
 
     def set_setpoint(self, stpt: float):
-        self.sun.write('set={}'.format(stpt))
+        try:
+            self.sun.write('set={}'.format(stpt))
+        except VisaIOError as error:
+            print('Error on writing setpoint: {}'.format(error.abbreviation))

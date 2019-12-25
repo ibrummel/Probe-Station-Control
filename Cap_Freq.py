@@ -16,6 +16,7 @@ from Agilent_E4980A import AgilentE4980A
 # Can be used to emulate the LCR without connection data will be garbage (random numbers)
 # from fake_E4980 import AgilentE4980A
 import Agilent_E4980A_Constants as Const
+from Main_App import ProbeStationControlMainWindow
 from File_Print_Headers import *
 import Static_Functions as Static
 
@@ -526,6 +527,7 @@ class CapFreqMeasureWorkerObject (QObject):
         self.stop = False
         self.data_df = pd.DataFrame()
         self.parent.stop_measurement_worker.connect(self.stop_early)
+        # ProbeStationControlMainWindow.active_measurement_changed.connect(self.return_instr_to_main_thread)
 
         # Predefine class variables
         self.step_start = 0

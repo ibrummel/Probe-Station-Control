@@ -1,9 +1,8 @@
 import sys
 
-from PyQt5.QtCore import QThread
+from PyQt5.QtCore import QThread, pyqtSignal
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTabWidget
 import visa
-from pyvisa.errors import VisaIOError
 from Agilent_E4980A import AgilentE4980A
 from Sun_EC1X import SunEC1xChamber
 from Cap_Freq import CapFreqWidget
@@ -11,6 +10,7 @@ from Cap_Freq_Temp import CapFreqTempWidget
 
 
 class ProbeStationControlMainWindow(QMainWindow):
+    active_measurement_changed = pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__(parent)

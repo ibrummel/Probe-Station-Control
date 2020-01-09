@@ -478,8 +478,6 @@ class CapFreqWidget (QTabWidget):
 
     # When the worker says it is done, save data and reset widget state to interactive
     def end_measurement(self):
-        self.save_data()
-
         # Enable the user to change controls
         self.enable_controls(True)
         # Set live vals to update periodically
@@ -674,6 +672,7 @@ class CapFreqMeasureWorkerObject (QObject):
             # Store the measurement data in a field of the tests_df
             self.parent.header_dict[index] = self.parent.generate_header(index, row)
             self.parent.data_dict[index] = self.data_df
+            self.parent.save_data()
             if self.stop:
                 break
 

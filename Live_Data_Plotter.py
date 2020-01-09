@@ -156,7 +156,7 @@ class LivePlotCanvas(FigCanvas):
         self.axes.clear()
         self.old_lines2.clear()
         self.axes2.clear()
-
+        
         # Re initialize the axes labels
         self.change_axes_labels(self.axes_labels)
 
@@ -171,39 +171,41 @@ class LivePlotCanvas(FigCanvas):
         # Clear both sets of axes
         self.axes.clear()
         self.axes2.clear()
-
-        # Add the current primary axis data to the plot
-        self.axes.plot(self.x, self.y1, color=self.line_color[0])
-        if self.lead[0]:
-            self.axes.plot(self.x[-self.lead_length[0]:],
-                           self.y1[-self.lead_length[0]:],
-                           color=self.head_color[0])
-        if self.head[0]:
-            self.axes.plot(self.x[-1], self.y1[-1],
-                           color=self.head_color[0])
-        # Plot the old lines for the primary axis
-        prim_color = colors.to_hex(self.line_color[0])
-        for idx, line_data in enumerate(self.old_lines):
-            self.axes.plot(line_data['x'], line_data['y'],
-                           linestyle=':',
-                           color=prim_color+self.old_line_alphas[idx])
-        # Add current secondary axis data to the plot, if necessary
-        if self.dual_y:
-            self.axes2.plot(self.x, self.y2, color=self.line_color[1])
-            if self.lead[1]:
-                self.axes2.plot(self.x[-self.lead_length[1]:],
-                                self.y2[-self.lead_length[1]:],
-                                color=self.head_color[1])
-            if self.head[1]:
-                self.axes2.plot(self.x[-1], self.y2[-1],
-                                color=self.head_color[1])
-                # Plot the old lines for the secondary axis
-                sec_color = colors.to_hex(self.line_color[1])
-                for idx, line_data in enumerate(self.old_lines2):
-                    self.axes.plot(line_data['x'], line_data['y'],
-                                   linestyle=':',
-                                   color=sec_color + self.old_line_alphas[idx])
-
+        
+        try:
+            # Add the current primary axis data to the plot
+            self.axes.plot(self.x, self.y1, color=self.line_color[0])
+            if self.lead[0]:
+                self.axes.plot(self.x[-self.lead_length[0]:],
+                               self.y1[-self.lead_length[0]:],
+                               color=self.head_color[0])
+            if self.head[0]:
+                self.axes.plot(self.x[-1], self.y1[-1],
+                               color=self.head_color[0])
+            # Plot the old lines for the primary axis
+            prim_color = colors.to_hex(self.line_color[0])
+            for idx, line_data in enumerate(self.old_lines):
+                self.axes.plot(line_data['x'], line_data['y'],
+                               linestyle=':',
+                               color=prim_color+self.old_line_alphas[idx])
+            # Add current secondary axis data to the plot, if necessary
+            if self.dual_y:
+                self.axes2.plot(self.x, self.y2, color=self.line_color[1])
+                if self.lead[1]:
+                    self.axes2.plot(self.x[-self.lead_length[1]:],
+                                    self.y2[-self.lead_length[1]:],
+                                    color=self.head_color[1])
+                if self.head[1]:
+                    self.axes2.plot(self.x[-1], self.y2[-1],
+                                    color=self.head_color[1])
+                    # Plot the old lines for the secondary axis
+                    sec_color = colors.to_hex(self.line_color[1])
+                    for idx, line_data in enumerate(self.old_lines2):
+                        self.axes.plot(line_data['x'], line_data['y'],
+                                       linestyle=':',
+                                       color=sec_color + self.old_line_alphas[idx])
+        except IndexError as err:
+            print(err, 'Likely a result of attempting to replot too quickly after clearing the old data')
         # Relimit the plot to keep data in view
         self.axes.relim()
         self.axes.autoscale_view(True, True, True)

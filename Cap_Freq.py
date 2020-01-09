@@ -302,15 +302,15 @@ class CapFreqWidget (QTabWidget):
 
         for irow in range(0, self.table_meas_setup.rowCount()):
             for icol in range(0, self.table_meas_setup.columnCount()):
-                tmprow = tmprow + '\t' + self.table_meas_setup.item(irow, icol).text()
+                tmprow = tmprow + self.table_meas_setup.item(irow, icol).text() + '\t'
 
-            copystr = copystr + tmprow + '\n'
+            copystr = copystr + tmprow.rstrip('\t') + '\n'
             tmprow = ''
 
         self.clipboard.setText(copystr)
 
     def paste_table(self):
-        rows = self.clipboard.text().split('\n')
+        rows = self.clipboard.text().split('\n')[:-1]
 
         self.num_measurements = len(rows)
         self.ln_num_meas.setText(str(len(rows)))

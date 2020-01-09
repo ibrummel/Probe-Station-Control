@@ -247,13 +247,6 @@ Stability:</string>
            </item>
           </layout>
          </item>
-         <item row="6" column="0">
-          <widget class="QLabel" name="lbl_return_to_rt">
-           <property name="text">
-            <string>Return to RT?</string>
-           </property>
-          </widget>
-         </item>
          <item row="6" column="1">
           <widget class="QCheckBox" name="check_return_to_rt">
            <property name="text">
@@ -261,6 +254,30 @@ Stability:</string>
            </property>
            <property name="checked">
             <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item row="7" column="0">
+          <widget class="QLabel" name="lbl_always_stab">
+           <property name="toolTip">
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Check this box if you want to stabilize temperature between measurements with the same temperature setpoint.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           </property>
+           <property name="text">
+            <string>Always Stabilize?</string>
+           </property>
+          </widget>
+         </item>
+         <item row="7" column="1">
+          <widget class="QCheckBox" name="check_always_stab">
+           <property name="toolTip">
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Check this box if you want to stabilize temperature between measurements with the same temperature setpoint.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           </property>
+          </widget>
+         </item>
+         <item row="6" column="0">
+          <widget class="QLabel" name="lbl_return_to_rt">
+           <property name="text">
+            <string>Return to RT?</string>
            </property>
           </widget>
          </item>

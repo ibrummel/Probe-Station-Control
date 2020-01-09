@@ -53,6 +53,7 @@ class CapFreqTempWidget(CapFreqWidget):
         self.ln_z_stdev_tol = self.findChild(QLineEdit, 'ln_z_stdev_tol')
         self.ln_z_stdev_tol.setText('500')
         self.check_return_to_rt = self.findChild(QCheckBox, 'check_return_to_rt')
+        self.check_always_stab = self.findChild(QCheckBox, 'check_always_stab')
 
         self.radio_chamber_tc = self.findChild(QRadioButton, 'radio_chamber_tc')
         self.radio_user_tc = self.findChild(QRadioButton, 'radio_user_tc')
@@ -159,15 +160,17 @@ class CapFreqTempMeasureWorkerObject(CapFreqMeasureWorkerObject):
     def __init__(self, parent: CapFreqTempWidget):
         super().__init__(parent)
         self.parent = parent
-        self.step_temp = 0
+        self.step_temp = None
         self.user_avg = 0
         self.chamber_avg = 0
         self.user_stdev = 0
         self.chamber_stdev = 0
         self.z_stdev = 0
+        self.prev_step_temp = None
 
     def set_test_params(self, row):
         super().set_test_params(row)
+        self.prev_step_temp = self.step_temp
         self.step_temp = float(row[self.parent.meas_setup_hheaders[5]])
         print("Setting test temperature to {}".format(self.step_temp))
 
@@ -189,82 +192,90 @@ class CapFreqTempMeasureWorkerObject(CapFreqMeasureWorkerObject):
         chamber_T = []
         z = []
 
-        # Send the command to change the temperature
-        self.parent.sun.set_setpoint(self.step_temp)
+        if self.step_temp != self.prev_step_temp:
+            # Send the command to change the temperature
+            self.parent.sun.set_setpoint(self.step_temp)
 
-        # Get the current temperature and loop umtil setpoint is achieved
-        check_temp = float(self.parent.sun.get_temp())
-        if self.step_temp > check_temp:
-            while check_temp < self.step_temp:
-                check_temp = float(self.parent.sun.get_temp())
-                self.parent.lbl_curr_temp.setText(str(check_temp))
+            # Get the current temperature and loop umtil setpoint is achieved
+            check_temp = float(self.parent.sun.get_temp())
+            if self.step_temp > check_temp:
+                while check_temp < self.step_temp:
+                    check_temp = float(self.parent.sun.get_temp())
+                    self.parent.lbl_curr_temp.setText(str(check_temp))
+                    sleep(1)
+                    if self.stop:
+                        break
+            elif self.step_temp < check_temp:
+                while check_temp > self.step_temp:
+                    check_temp = float(self.parent.sun.get_temp())
+                    self.parent.lbl_curr_temp.setText(str(check_temp))
+                    sleep(1)
+                    if self.stop:
+                        break
+
+        if self.step_temp != self.prev_step_temp or self.parent.check_always_stab.isChecked():
+            # After reaching setpoint, check stability
+            # ToDo: Make the print statements here appear in a pop-up with a progress bar
+            print('Beginning temperature stability check at {temp}...'.format(temp=self.step_temp))
+            self.parent.enable_live_plots = False
+            count = 0
+            for i in range(0, int(self.parent.dwell * 60)):
+                if count % self.parent.stab_int == 0:
+                    user_T.append(self.parent.sun.get_user_temp())
+                    sleep(0.1)
+                    chamber_T.append(self.parent.sun.get_temp())
+                    z.append(self.parent.lcr.get_data()[1])
+                    if self.parent.radio_chamber_tc.isChecked():
+                        self.parent.lbl_curr_temp.setText(str(chamber_T[-1]))
+                    elif self.parent.radio_user_tc.isChecked():
+                        self.parent.lbl_curr_temp.setText(str(user_T[-1]))
+                count += 1
                 sleep(1)
+                print("Stability Check in Progress {} remaining"
+                      .format(str(datetime.timedelta(seconds=int(self.parent.dwell * 60)-i)), end="\r"))
                 if self.stop:
                     break
-        elif self.step_temp < check_temp:
-            while check_temp > self.step_temp:
-                check_temp = float(self.parent.sun.get_temp())
-                self.parent.lbl_curr_temp.setText(str(check_temp))
-                sleep(1)
-                if self.stop:
-                    break
-
-        # After reaching setpoint, check stability
-        # ToDo: Make the print statements here appear in a pop-up with a progress bar
-        print('Beginning temperature stability check at {temp}...'.format(temp=self.step_temp))
-        self.parent.enable_live_plots = False
-        count = 0
-        for i in range(0, int(self.parent.dwell * 60)):
-            if count % self.parent.stab_int == 0:
-                user_T.append(self.parent.sun.get_user_temp())
-                sleep(0.1)
-                chamber_T.append(self.parent.sun.get_temp())
-                z.append(self.parent.lcr.get_data()[1])
-                if self.parent.radio_chamber_tc.isChecked():
-                    self.parent.lbl_curr_temp.setText(str(chamber_T[-1]))
-                elif self.parent.radio_user_tc.isChecked():
-                    self.parent.lbl_curr_temp.setText(str(user_T[-1]))
-            count += 1
-            sleep(1)
-            print("Stability Check in Progress {} remaining"
-                  .format(str(datetime.timedelta(seconds=int(self.parent.dwell * 60)-i)), end="\r"))
             if self.stop:
-                break
-        if self.stop:
-            return
-        print("Temperature equilibration complete. {} remaining".format(str(datetime.timedelta(seconds=0)), end="\r"))
-        self.parent.enable_live_plots = True
+                return
+            print("Temperature equilibration complete. {} remaining".format(str(datetime.timedelta(seconds=0)), end="\r"))
+            self.parent.enable_live_plots = True
 
-        try:
-            self.user_avg = mean(user_T)
-            self.user_stdev = stdev(user_T, self.user_avg)
-            self.chamber_avg = mean(chamber_T)
-            self.chamber_stdev = stdev(chamber_T, self.chamber_avg)
-            self.z_stdev = stdev(z, mean(z))
-        except StatisticsError:
-            print('Error on performing statistics calculations.')
-            self.user_avg = 99999
-            self.user_stdev = 99999
-            self.chamber_avg = 99999
-            self.chamber_stdev = 99999
-            self.z_stdev = 99999
+            try:
+                self.user_avg = mean(user_T)
+                self.user_stdev = stdev(user_T, self.user_avg)
+                self.chamber_avg = mean(chamber_T)
+                self.chamber_stdev = stdev(chamber_T, self.chamber_avg)
+                self.z_stdev = stdev(z, mean(z))
+            except StatisticsError:
+                print('Error on performing statistics calculations.')
+                self.user_avg = 99999
+                self.user_stdev = 99999
+                self.chamber_avg = 99999
+                self.chamber_stdev = 99999
+                self.z_stdev = 99999
 
-        temp_tol = float(self.parent.ln_temp_tol.text())
-        stdev_tol = float(self.parent.ln_stdev_tol.text())
-        z_stdev_tol = float(self.parent.ln_z_stdev_tol.text())
+            temp_tol = float(self.parent.ln_temp_tol.text())
+            stdev_tol = float(self.parent.ln_stdev_tol.text())
+            z_stdev_tol = float(self.parent.ln_z_stdev_tol.text())
 
-        if abs(self.chamber_avg - self.step_temp) > temp_tol or self.chamber_stdev > stdev_tol:
-            print('Temperature ({delta} vs {deltol}) or standard deviation ({stdev} vs {stdevtol}) '
-                  'outside of tolerance.'.format(delta=abs(self.chamber_avg - self.step_temp), deltol=temp_tol,
-                                                 stdev=self.chamber_stdev, stdevtol=stdev_tol))
-            self.blocking_func()
-        print('Temperature readings within tolerance')
-        if self.parent.check_z_stability.isChecked():
-            if self.z_stdev > z_stdev_tol:
-                print('Impedance variation outside of tolerance: Tolerance={tol}, Measured Stdev={stdev}'
-                      .format(tol=z_stdev_tol, stdev=self.z_stdev))
+            if abs(self.chamber_avg - self.step_temp) > temp_tol or self.chamber_stdev > stdev_tol:
+                print('Temperature ({delta} vs {deltol}) or standard deviation ({stdev} vs {stdevtol}) '
+                      'outside of tolerance.'.format(delta=abs(self.chamber_avg - self.step_temp), deltol=temp_tol,
+                                                     stdev=self.chamber_stdev, stdevtol=stdev_tol))
                 self.blocking_func()
-            print('Impedance stability within tolerance.')
+            print('Temperature readings within tolerance')
+            if self.parent.check_z_stability.isChecked():
+                if self.z_stdev > z_stdev_tol:
+                    print('Impedance variation outside of tolerance: Tolerance={tol}, Measured Stdev={stdev}'
+                          .format(tol=z_stdev_tol, stdev=self.z_stdev))
+                    self.blocking_func()
+                print('Impedance stability within tolerance.')
+        elif self.step_temp == self.prev_step_temp:
+            self.user_avg = str(self.user_avg) + '^'
+            self.user_stdev = str(self.user_stdev) + '^'
+            self.chamber_avg = str(self.chamber_avg) + '^'
+            self.chamber_stdev = str(self.chamber_stdev) + '^'
+            self.z_stdev = str(self.z_stdev)  + '^'
 
         # Add the standard measurement delay from cap freq
         super().blocking_func()

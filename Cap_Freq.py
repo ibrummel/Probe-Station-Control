@@ -182,7 +182,7 @@ class CapFreqWidget (QTabWidget):
         self.table_meas_setup.resizeColumnsToContents()
         self.add_table_items()
         self.table_meas_setup.item(0, 0).setText('20')
-        self.table_meas_setup.item(0, 1).setText('1000000')
+        self.table_meas_setup.item(0, 1).setText('2000000')
         self.table_meas_setup.item(0, 2).setText('0.05')
         self.table_meas_setup.item(0, 3).setText('0')
         self.table_meas_setup.item(0, 4).setText('0')

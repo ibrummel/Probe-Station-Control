@@ -58,8 +58,11 @@ class CapFreqTempWidget(CapFreqWidget):
         self.gbox_curr_temp = self.findChild(QGroupBox, 'gbox_curr_temp')
         self.lbl_curr_temp = self.findChild(QLabel, 'lbl_curr_temp')
         self.lbl_curr_meas_temp = self.findChild(QLabel, 'lbl_curr_meas_temp')
-
+    
         self.init_setup_table()
+        self.change_dwell()
+        self.change_ramp()
+        self.change_stab_int()
 
     def init_measure_worker(self):
         # Initialize worker object and move instruments to the worker thread.
@@ -165,6 +168,7 @@ class CapFreqTempMeasureWorkerObject(CapFreqMeasureWorkerObject):
     def set_test_params(self, row):
         super().set_test_params(row)
         self.step_temp = float(row[self.parent.meas_setup_hheaders[5]])
+        print("Setting test temperature to {}".format(self.step_temp))
 
     def set_current_meas_labels(self):
         super().set_current_meas_labels()

@@ -1,9 +1,10 @@
 import sys
 
 from PyQt5 import uic
+from PyQt5.QtGui import QKeySequence
 from PyQt5.QtWidgets import (QWidget, QComboBox, QLineEdit, QLabel, QGroupBox, QTableWidget,
                              QTableWidgetItem, QTabWidget, QMessageBox, QToolButton, QApplication,
-                             QFileDialog, QProgressBar, QPushButton)
+                             QFileDialog, QProgressBar, QPushButton, QShortcut)
 from PyQt5.QtCore import QTimer, QThread, pyqtSignal, QObject
 import os
 from io import StringIO
@@ -16,7 +17,6 @@ from Agilent_E4980A import AgilentE4980A
 # Can be used to emulate the LCR without connection data will be garbage (random numbers)
 # from fake_E4980 import AgilentE4980A
 import Agilent_E4980A_Constants as Const
-#from Main_App import ProbeStationControlMainWindow
 from File_Print_Headers import *
 import Static_Functions as Static
 
@@ -41,7 +41,6 @@ class CapFreqWidget (QTabWidget):
         self.meas_delay = 0.0
         self.enable_live_plots = False
         self.enable_live_vals = True
-        self.clipboard = QApplication.clipboard()
 
         self.num_measurements = 1
         self.tests_df = pd.DataFrame()
@@ -122,6 +121,11 @@ class CapFreqWidget (QTabWidget):
         self.live_readout_timer = QTimer()
         self.btn_run_start_stop = self.findChild(QPushButton, 'btn_run_start_stop')
         self.btn_setup_start_stop = self.findChild(QPushButton, 'btn_setup_start_stop')
+
+        # Set up for allowing copy paste in the measurement table
+        self.clipboard = QApplication.clipboard()
+        self.copy_sc = QShortcut(QKeySequence('Ctrl+C'), self.table_meas_setup, self.copy_table, self.copy_table)
+        self.paste_sc = QShortcut(QKeySequence('Ctrl+V'), self.table_meas_setup, self.paste_table, self.paste_table)
 
         # Initialize widget bits
         self.init_connections()

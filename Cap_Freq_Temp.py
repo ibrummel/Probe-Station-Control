@@ -1,5 +1,3 @@
-# ToDo: Add sun chamber monitoring and control to the norm Cap_Freq Measurements, allowing for temperature dependent
-#  studies of materials without manual intervention
 import sys
 
 import visa
@@ -202,14 +200,14 @@ class CapFreqTempMeasureWorkerObject(CapFreqMeasureWorkerObject):
             # Get the current temperature and loop umtil setpoint is achieved
             check_temp = float(self.parent.sun.get_temp())
             if self.step_temp > check_temp:
-                while check_temp < self.step_temp:
+                while check_temp < self.step_temp - float(self.parent.ln_temp_tol.text()):
                     check_temp = float(self.parent.sun.get_temp())
                     self.parent.lbl_curr_temp.setText(str(check_temp))
                     sleep(1)
                     if self.stop:
                         break
             elif self.step_temp < check_temp:
-                while check_temp > self.step_temp:
+                while check_temp > self.step_temp + float(self.parent.ln_temp_tol.text()):
                     check_temp = float(self.parent.sun.get_temp())
                     self.parent.lbl_curr_temp.setText(str(check_temp))
                     sleep(1)

@@ -6,10 +6,10 @@ import visa
 from PyQt5.QtCore import QThread
 
 from Sun_EC1X import SunEC1xChamber
-from fake_sun import SunEC1xChamber
+# from fake_sun import SunEC1xChamber
 from Cap_Freq import CapFreqWidget, CapFreqMeasureWorkerObject
 from Agilent_E4980A import AgilentE4980A
-from fake_E4980 import AgilentE4980A
+# from fake_E4980 import AgilentE4980A
 from File_Print_Headers import *
 from statistics import stdev, mean, StatisticsError
 import pandas as pd
@@ -186,6 +186,9 @@ class CapFreqTempMeasureWorkerObject(CapFreqMeasureWorkerObject):
         if self.parent.check_return_to_rt.isChecked():
             self.parent.sun.set_setpoint(25.0)
             print('Sun setpoint moved to 25C.')
+        # Prevent issues with rollover from previous measurements.
+        self.step_temp = None
+        self.prev_step_temp = None
 
     def blocking_func(self):
         user_T = []
@@ -275,7 +278,7 @@ class CapFreqTempMeasureWorkerObject(CapFreqMeasureWorkerObject):
             self.user_stdev = str(self.user_stdev) + '^'
             self.chamber_avg = str(self.chamber_avg) + '^'
             self.chamber_stdev = str(self.chamber_stdev) + '^'
-            self.z_stdev = str(self.z_stdev)  + '^'
+            self.z_stdev = str(self.z_stdev) + '^'
 
         # Add the standard measurement delay from cap freq
         super().blocking_func()

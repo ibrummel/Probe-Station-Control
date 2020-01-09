@@ -502,8 +502,7 @@ class CapFreqWidget (QTabWidget):
     def return_to_defaults(self):
         print('Returning lcr to defaults')
         self.lcr.dc_bias_level('voltage', 0)
-        # FixMe: Should I not set this to 0 for some reason? Originally at 50mV
-        self.lcr.signal_level('voltage', 0)
+        self.lcr.signal_level('voltage', 0.05)
         self.lcr.signal_frequency(1000)
 
     def save_data(self):

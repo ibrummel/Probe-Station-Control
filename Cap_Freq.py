@@ -16,7 +16,7 @@ from Agilent_E4980A import AgilentE4980A
 # Can be used to emulate the LCR without connection data will be garbage (random numbers)
 # from fake_E4980 import AgilentE4980A
 import Agilent_E4980A_Constants as Const
-from Main_App import ProbeStationControlMainWindow
+#from Main_App import ProbeStationControlMainWindow
 from File_Print_Headers import *
 import Static_Functions as Static
 
@@ -302,7 +302,7 @@ class CapFreqWidget (QTabWidget):
 
         for irow in range(0, self.table_meas_setup.rowCount()):
             for icol in range(0, self.table_meas_setup.columnCount()):
-                tmprow = tmprow + '\t' + self.table_meas_setup.item(irow, icol).text
+                tmprow = tmprow + '\t' + self.table_meas_setup.item(irow, icol).text()
 
             copystr = copystr + tmprow + '\n'
             tmprow = ''

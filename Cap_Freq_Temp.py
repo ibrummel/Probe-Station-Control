@@ -13,6 +13,7 @@ from Agilent_E4980A import AgilentE4980A
 from File_Print_Headers import *
 from statistics import stdev, mean, StatisticsError
 import pandas as pd
+from Static_Functions import to_sigfigs
 from time import sleep
 import datetime
 from pyvisa.errors import VisaIOError
@@ -139,10 +140,10 @@ class CapFreqTempWidget(CapFreqWidget):
                                              ramp=header_vars['ramp'],
                                              dwell=header_vars['dwell'],
                                              stab_int=header_vars['stab_int'],
-                                             user_avg=self.measuring_worker.user_avg,
-                                             user_stdev=self.measuring_worker.user_stdev,
-                                             chamber_avg=self.measuring_worker.chamber_avg,
-                                             chamber_stdev=self.measuring_worker.chamber_stdev,
+                                             user_avg=to_sigfigs(self.measuring_worker.user_avg, 5),
+                                             user_stdev=to_sigfigs(self.measuring_worker.user_stdev, 5),
+                                             chamber_avg=to_sigfigs(self.measuring_worker.chamber_avg, 5),
+                                             chamber_stdev=to_sigfigs(self.measuring_worker.chamber_stdev, 5),
                                              z_stdev=self.measuring_worker.z_stdev,
                                              notes='Notes:\t{}'.format(header_vars['notes']))
 

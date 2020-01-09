@@ -16,6 +16,7 @@ from Agilent_E4980A import AgilentE4980A
 # Can be used to emulate the LCR without connection data will be garbage (random numbers)
 # from fake_E4980 import AgilentE4980A
 import Agilent_E4980A_Constants as Const
+from Main_App import ProbeStationControlMainWindow
 from File_Print_Headers import *
 import Static_Functions as Static
 
@@ -40,6 +41,7 @@ class CapFreqWidget (QTabWidget):
         self.meas_delay = 0.0
         self.enable_live_plots = False
         self.enable_live_vals = True
+        self.clipboard = QApplication.clipboard()
 
         self.num_measurements = 1
         self.tests_df = pd.DataFrame()
@@ -82,6 +84,8 @@ class CapFreqWidget (QTabWidget):
         self.gbox_meas_setup = self.findChild(QGroupBox, 'gbox_meas_setup')
         self.ln_num_meas = self.findChild(QLineEdit, 'ln_num_meas')
         self.ln_num_meas.setText(str(self.num_measurements))
+        self.btn_copy_table = self.findChild(QPushButton, 'btn_copy_table')
+        self.btn_paste_table = self.findChild(QPushButton, 'btn_paste_table')
         self.table_meas_setup = self.findChild(QTableWidget, 'table_meas_setup')
         self.meas_setup_hheaders = ['Frequency Start [Hz]',
                                     'Frequency Stop [Hz]',
@@ -137,6 +141,8 @@ class CapFreqWidget (QTabWidget):
         self.ln_save_file.editingFinished.connect(self.set_save_file_path_by_line)
         self.btn_save_file.clicked.connect(self.set_save_file_path_by_dialog)
         self.ln_num_meas.editingFinished.connect(self.change_num_measurements)
+        self.btn_copy_table.clicked.connect(self.copy_table)
+        self.btn_paste_table.clicked.connect(self.paste_table)
         self.btn_run_start_stop.clicked.connect(self.on_start_stop_clicked)
         self.btn_setup_start_stop.clicked.connect(self.on_start_stop_clicked)
 
@@ -289,6 +295,31 @@ class CapFreqWidget (QTabWidget):
                         new_widget.setText(value)
                     # Put the new widget in the table
                     self.table_meas_setup.setItem(irow, icol, new_widget)
+
+    def copy_table(self):
+        tmprow = ''
+        copystr = ''
+
+        for irow in range(0, self.table_meas_setup.rowCount()):
+            for icol in range(0, self.table_meas_setup.columnCount()):
+                tmprow = tmprow + '\t' + self.table_meas_setup.item(irow, icol).text
+
+            copystr = copystr + tmprow + '\n'
+            tmprow = ''
+
+        self.clipboard.setText(copystr)
+
+    def paste_table(self):
+        rows = self.clipboard.text().split('\n')
+
+        self.num_measurements = len(rows)
+        self.ln_num_meas.setText(str(len(rows)))
+        self.change_num_measurements()
+
+        for (irow, row_val) in enumerate(rows):
+            tmpcols = row_val.split('\t')
+            for (icol, col_val) in enumerate(tmpcols):
+                self.table_meas_setup.item(irow, icol).setText(str(col_val))
 
     def generate_header(self, index, row):
         header_vars = self.get_header_vars(index, row)
@@ -526,6 +557,7 @@ class CapFreqMeasureWorkerObject (QObject):
         self.stop = False
         self.data_df = pd.DataFrame()
         self.parent.stop_measurement_worker.connect(self.stop_early)
+        # ProbeStationControlMainWindow.active_measurement_changed.connect(self.return_instr_to_main_thread)
 
         # Predefine class variables
         self.step_start = 0
@@ -549,7 +581,7 @@ class CapFreqMeasureWorkerObject (QObject):
         self.step_stop = row[self.parent.meas_setup_hheaders[1]]
         self.step_osc = row[self.parent.meas_setup_hheaders[2]]
         self.step_bias = row[self.parent.meas_setup_hheaders[3]]
-        self.step_delay = int(row[self.parent.meas_setup_hheaders[4]])
+        self.step_delay = float(row[self.parent.meas_setup_hheaders[4]])
 
     def get_out_columns(self):
         columns = Const.PARAMETERS_BY_FUNC[Const.FUNC_DICT[self.parent.combo_function.currentText()]]

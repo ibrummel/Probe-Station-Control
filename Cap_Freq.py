@@ -428,8 +428,17 @@ class CapFreqWidget (QTabWidget):
         self.stop_measurement_worker.emit()
         self.enable_live_plots = False
 
-    def start_measurement(self):
-        self.set_save_file_path_by_line()
+    def dep_cancelled_by_user(self):
+        cancel = QMessageBox.information(self, 'Measurement canceled',
+                                'Measurement cancelled by user.',
+                                QMessageBox.Ok, QMessageBox.Ok)
+        if cancel == QMessageBox.Ok:
+            self.btn_setup_start_stop.setChecked(False)
+            self.btn_run_start_stop.setChecked(False)
+            self.halt_measurement()
+            return
+
+    def check_file_path(self):
         if os.path.isfile(self.save_file_path):
             overwrite = QMessageBox.warning(self, 'File already exists',
                                             'This data file already exists. Would you like to overwrite?',
@@ -439,14 +448,8 @@ class CapFreqWidget (QTabWidget):
                 self.set_save_file_path_by_dialog()
                 self.start_measurement()
             elif overwrite == QMessageBox.Cancel:
-                cancel = QMessageBox.information(self, 'Measurement canceled',
-                                                 'Measurement cancelled by user.',
-                                                 QMessageBox.Ok, QMessageBox.Ok)
-                self.btn_setup_start_stop.setChecked(False)
-                self.btn_run_start_stop.setChecked(False)
-                self.halt_measurement()
-                if cancel == QMessageBox.Ok:
-                    return
+                self.dep_cancelled_by_user()
+                return
         elif self.save_file_path == os.path.join(os.getenv('USERPROFILE'), 'Desktop') or self.save_file_path == '':
             no_file_selected = QMessageBox.warning(self, 'No File Selected',
                                                    'No file has been selected for writing data, '
@@ -457,12 +460,13 @@ class CapFreqWidget (QTabWidget):
                 self.set_save_file_path_by_dialog()
                 self.start_measurement()
             elif no_file_selected == QMessageBox.Cancel:
-                cancel = QMessageBox.information(self, 'Measurement canceled',
-                                                 'Measurement cancelled by user.',
-                                                 QMessageBox.Ok, QMessageBox.Ok)
-                if cancel == QMessageBox.Ok:
-                    return
-        # Fixme: maybe add more file save path checking i.e. blank or default location.
+                self.dep_cancelled_by_user()
+                return
+            # Fixme: maybe add more file save path checking i.e. blank or default location.
+
+    def start_measurement(self):
+        self.set_save_file_path_by_line()
+        self.check_file_path()
 
         self.setCurrentWidget(self.tab_run_meas)
         # Set up the progress bar for this measurement

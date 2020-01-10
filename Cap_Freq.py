@@ -10,7 +10,7 @@ import os
 from io import StringIO
 from time import sleep
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 import numpy as np
 from Live_Data_Plotter import LivePlotWidget
 from Agilent_E4980A import AgilentE4980A
@@ -28,7 +28,7 @@ class CapFreqWidget (QTabWidget):
 
     def __init__(self, lcr: AgilentE4980A, measuring_thread=QThread(), ui_path='./src/ui/cap_freq_tabs.ui'):
         super().__init__()
-        print('Initializing Capacitance-Frequency Widget...')
+        # print('Initializing Capacitance-Frequency Widget...')
         # Define class variables and objects
         self.lcr = lcr
         self.lcr_function = 'self.lcr.get_current_function()'  # Dummy value which is set after connection
@@ -56,7 +56,7 @@ class CapFreqWidget (QTabWidget):
         self.return_to_defaults()
 
         # Begin ui setup by importing the ui file
-        print('Loading ui file from "{}"'.format(ui_path))
+        # print('Loading ui file from "{}"'.format(ui_path))
         self.ui = uic.loadUi(ui_path, self)
 
         # Define measurement setup tab
@@ -103,6 +103,7 @@ class CapFreqWidget (QTabWidget):
         self.lbl_curr_meas_bias = self.findChild(QLabel, 'lbl_curr_meas_bias')
         self.progress_bar_meas = self.findChild(QProgressBar, 'progress_bar_meas')
         self.lbl_meas_progress = self.findChild(QLabel, 'lbl_meas_progress')
+        self.lbl_meas_status = self.findChild(QLabel, 'lbl_meas_status')
 
         # Define value readouts
         self.gbox_val1 = self.findChild(QGroupBox, 'gbox_val1')
@@ -130,7 +131,7 @@ class CapFreqWidget (QTabWidget):
         # Initialize widget bits
         self.init_connections()
         self.init_control_setup()
-        print('Capacitance-Frequency initialization complete')
+        # print('Capacitance-Frequency initialization complete')
 
     def init_connections(self):
         # Control edit connections
@@ -163,6 +164,7 @@ class CapFreqWidget (QTabWidget):
         self.measuring_thread.finished.connect(self.end_measurement)
         self.measuring_thread.started.connect(self.measuring_worker.measure)
         self.lcr.new_data.connect(self.plot_new_points)
+        self.measuring_worker.meas_status_update.connect(self.update_meas_status)
 
     def init_measure_worker(self):
         self.measuring_worker = CapFreqMeasureWorkerObject(self)
@@ -394,7 +396,6 @@ class CapFreqWidget (QTabWidget):
     def on_start_stop_clicked(self):
         # Get the sender
         btn = self.sender()
-        print('Start stop button pressed')
         # If the sender is checked (trying to start the measurement)
         if btn.isChecked():
             # Set both buttons to checked
@@ -490,7 +491,7 @@ class CapFreqWidget (QTabWidget):
         self.enable_live_plots = False
         self.return_to_defaults()
 
-        print('Measurement finished')
+        # print('Measurement finished')
         # Change start/stop button back to start
         # Set both buttons to unchecked
         self.btn_setup_start_stop.setChecked(False)
@@ -500,7 +501,7 @@ class CapFreqWidget (QTabWidget):
         self.btn_run_start_stop.setText('Start Measurements')
 
     def return_to_defaults(self):
-        print('Returning lcr to defaults')
+        # print('Returning lcr to defaults')
         self.lcr.dc_bias_level('voltage', 0)
         self.lcr.signal_level('voltage', 0.05)
         self.lcr.signal_frequency(1000)
@@ -547,10 +548,14 @@ class CapFreqWidget (QTabWidget):
         self.lbl_meas_progress.setText('Measurement {}/{},\nStep {}/{}'.format(indices[0], self.num_measurements,
                                                                                indices[1] + 1, self.num_pts))
 
+    def update_meas_status(self, update_str: str):
+        self.lbl_meas_status.setText(update_str)
+
 
 class CapFreqMeasureWorkerObject (QObject):
     measurement_finished = pyqtSignal()
     freq_step_finished = pyqtSignal(list)
+    meas_status_update = pyqtSignal(str)
 
     def __init__(self, parent: CapFreqWidget):
         super().__init__()
@@ -602,18 +607,17 @@ class CapFreqMeasureWorkerObject (QObject):
     def blocking_func(self):
         count = 0
         while count < self.step_delay:
+            time_left = str(timedelta(seconds=self.step_delay - count))
+            self.meas_status_update.emit('Sleeping until measurement time. Time Remaining: '
+                                         '{}s'.format(time_left))
             sleep(1)
-            if (self.step_delay - count) > 10 and not (count % 10):
-                print('Sleeping until measurement time. Time Remaining: {}s'.format((self.step_delay - count)))
-            elif (self.step_delay - count) <= 10:
-                print('Sleeping until measurement time. Time Remaining: {}s'.format((self.step_delay - count)))
             count += 1
 
     def return_instr_to_main_thread(self):
         self.lcr.moveToThread(QApplication.instance().thread())
 
     def measurement_cleanup(self):
-        pass
+        self.meas_status_update.emit('Measurement finished.')
 
     def measure(self):
         # Write configured parameters to lcr
@@ -642,7 +646,7 @@ class CapFreqMeasureWorkerObject (QObject):
             self.parent.return_to_defaults()
             self.blocking_func()
                 
-            print('Beginning measurement...')
+            self.meas_status_update.emit('Measurement in progress...')
             # Set lcr accordingly
             self.parent.lcr.signal_level(self.parent.combo_signal_type.currentText(), self.step_osc)
             self.parent.lcr.dc_bias_level(self.parent.combo_bias_type.currentText(), self.step_bias)

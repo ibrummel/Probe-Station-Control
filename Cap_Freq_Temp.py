@@ -13,7 +13,7 @@ from statistics import stdev, mean, StatisticsError
 import pandas as pd
 from Static_Functions import to_sigfigs
 from time import sleep
-import datetime
+from datetime import timedelta
 from pyvisa.errors import VisaIOError
 from PyQt5.QtWidgets import QLineEdit, QLabel, QGroupBox, QRadioButton, QApplication, QCheckBox
 
@@ -24,7 +24,7 @@ class CapFreqTempWidget(CapFreqWidget):
 
         self.sun = sun
         super().__init__(lcr=lcr, measuring_thread=measuring_thread, ui_path='./src/ui/cap_freq_temp_tabs.ui')
-        print('Initializing Capacitance-Frequency-Temperature Widget')
+        # print('Initializing Capacitance-Frequency-Temperature Widget')
         self.dwell = 10
         self.ramp = 5
         self.stab_int = 5
@@ -58,7 +58,7 @@ class CapFreqTempWidget(CapFreqWidget):
         self.gbox_curr_temp = self.findChild(QGroupBox, 'gbox_curr_temp')
         self.lbl_curr_temp = self.findChild(QLabel, 'lbl_curr_temp')
         self.lbl_curr_meas_temp = self.findChild(QLabel, 'lbl_curr_meas_temp')
-    
+
         self.init_setup_table()
         self.change_dwell()
         self.change_ramp()
@@ -67,11 +67,11 @@ class CapFreqTempWidget(CapFreqWidget):
     def init_measure_worker(self):
         # Initialize worker object and move instruments to the worker thread.
         self.measuring_worker = CapFreqTempMeasureWorkerObject(self)
-        print('moving worker')
+        # print('moving worker')
         self.measuring_worker.moveToThread(self.measuring_thread)
-        print('moving lcr')
+        # print('moving lcr')
         self.lcr.moveToThread(self.measuring_thread)
-        print('moving sun')
+        # print('moving sun')
         self.sun.moveToThread(self.measuring_thread)
 
     def init_setup_table(self):
@@ -170,7 +170,7 @@ class CapFreqTempMeasureWorkerObject(CapFreqMeasureWorkerObject):
         super().set_test_params(row)
         self.prev_step_temp = self.step_temp
         self.step_temp = float(row[self.parent.meas_setup_hheaders[5]])
-        print("Setting test temperature to {}".format(self.step_temp))
+        # print("Setting test temperature to {}".format(self.step_temp))
 
     def set_current_meas_labels(self):
         super().set_current_meas_labels()
@@ -183,7 +183,9 @@ class CapFreqTempMeasureWorkerObject(CapFreqMeasureWorkerObject):
     def measurement_cleanup(self):
         if self.parent.check_return_to_rt.isChecked():
             self.parent.sun.set_setpoint(25.0)
-            print('Sun setpoint moved to 25C.')
+            self.meas_status_update.emit('Measurement Finished. Temperature set point: 25°C')
+        else:
+            self.meas_status_update.emit('Measurement Finished.')
         # Prevent issues with rollover from previous measurements.
         self.step_temp = None
         self.prev_step_temp = None
@@ -217,7 +219,8 @@ class CapFreqTempMeasureWorkerObject(CapFreqMeasureWorkerObject):
         if self.step_temp != self.prev_step_temp or self.parent.check_always_stab.isChecked():
             # After reaching setpoint, check stability
             # ToDo: Make the print statements here appear in a pop-up with a progress bar
-            print('Beginning temperature stability check at {temp}...'.format(temp=self.step_temp))
+            self.meas_status_update.emit('Beginning temperature stability check at {temp}...'
+                                         .format(temp=self.step_temp))
             self.parent.enable_live_plots = False
             count = 0
             for i in range(0, int(self.parent.dwell * 60)):
@@ -231,14 +234,15 @@ class CapFreqTempMeasureWorkerObject(CapFreqMeasureWorkerObject):
                     elif self.parent.radio_user_tc.isChecked():
                         self.parent.lbl_curr_temp.setText(str(user_T[-1]))
                 count += 1
+                time_left = str(timedelta(seconds=int(self.parent.dwell * 60) - i))
+                self.meas_status_update.emit("Checking stability at {temp}. Time Remaining: {time}"
+                                             .format(temp=self.step_temp,
+                                                     time=time_left))
                 sleep(1)
-                print("Stability Check in Progress {} remaining"
-                      .format(str(datetime.timedelta(seconds=int(self.parent.dwell * 60)-i)), end="\r"))
                 if self.stop:
                     break
             if self.stop:
                 return
-            print("Temperature equilibration complete. {} remaining".format(str(datetime.timedelta(seconds=0)), end="\r"))
             self.parent.enable_live_plots = True
 
             try:
@@ -260,17 +264,21 @@ class CapFreqTempMeasureWorkerObject(CapFreqMeasureWorkerObject):
             z_stdev_tol = float(self.parent.ln_z_stdev_tol.text())
 
             if abs(self.chamber_avg - self.step_temp) > temp_tol or self.chamber_stdev > stdev_tol:
-                print('Temperature ({delta} vs {deltol}) or standard deviation ({stdev} vs {stdevtol}) '
-                      'outside of tolerance.'.format(delta=abs(self.chamber_avg - self.step_temp), deltol=temp_tol,
-                                                     stdev=self.chamber_stdev, stdevtol=stdev_tol))
+                self.meas_status_update.emit(
+                    'Temperature ({delta} vs {deltol}) or standard deviation ({stdev} vs {stdevtol}) '
+                    'outside of tolerance.'.format(delta=abs(self.chamber_avg - self.step_temp), deltol=temp_tol,
+                                                   stdev=self.chamber_stdev, stdevtol=stdev_tol))
+                sleep(2)
                 self.blocking_func()
-            print('Temperature readings within tolerance')
+            # print('Temperature readings within tolerance')
             if self.parent.check_z_stability.isChecked():
                 if self.z_stdev > z_stdev_tol:
-                    print('Impedance variation outside of tolerance: Tolerance={tol}, Measured Stdev={stdev}'
-                          .format(tol=z_stdev_tol, stdev=self.z_stdev))
+                    self.meas_status_update.emit(
+                        'Impedance variation outside of tolerance: Tolerance={tol}, Measured Stdev={stdev}'
+                        .format(tol=z_stdev_tol, stdev=self.z_stdev))
+                    sleep(2)
                     self.blocking_func()
-                print('Impedance stability within tolerance.')
+                # print('Impedance stability within tolerance.')
         elif self.step_temp == self.prev_step_temp:
             self.user_avg = str(self.user_avg) + '^'
             self.user_stdev = str(self.user_stdev) + '^'

@@ -26,7 +26,11 @@ def truncate_to(number, decimals=0):
 
 
 def to_sigfigs(num, sig=2):
-    return round(num, sig-int(floor(log10(abs(num))))-1)
+    try:
+        return round(num, sig-int(floor(log10(abs(num))))-1)
+    except ValueError as err:
+        print(err, 'num=', num, 'sig=', sig)
+        return num
 
 
 def si_prefix(num: float, unit: str, sig=2):

@@ -117,6 +117,7 @@ class AgilentE4980A(QObject):
         data.insert(0, freq)
 
         self.new_data.emit(data)
+        sleep(0.5)
         return data
 
     def get_function_parameters(self):

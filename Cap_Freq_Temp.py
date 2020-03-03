@@ -33,7 +33,7 @@ class CapFreqTempWidget(CapFreqWidget):
                                     'Frequency Stop [Hz]',
                                     'Oscillator [V]',
                                     'DC Bias [V]',
-                                    'Measurement Delay [s]',
+                                    'Equilibration Delay [s]',
                                     'Temperature Set Point [°C]']
 
         self.gbox_thermal_settings = self.findChild(QGroupBox, 'gbox_thermal_settings')

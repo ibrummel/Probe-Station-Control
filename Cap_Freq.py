@@ -21,7 +21,7 @@ from File_Print_Headers import *
 import Static_Functions as Static
 
 
-class CapFreqWidget (QTabWidget):
+class CapFreqWidget(QTabWidget):
     # This signal needs to be defined before the __init__ in order to allow it to work
     stop_measurement_worker = pyqtSignal()
     start_measuring = pyqtSignal()
@@ -90,7 +90,7 @@ class CapFreqWidget (QTabWidget):
                                     'Frequency Stop [Hz]',
                                     'Oscillator [V]',
                                     'DC Bias [V]',
-                                    'Measurement Delay [s]']
+                                    'Equilibration Delay [s]']
         self.meas_setup_vheaders = ['M1']
 
         # Define running measurement tab
@@ -430,8 +430,8 @@ class CapFreqWidget (QTabWidget):
 
     def dep_cancelled_by_user(self):
         cancel = QMessageBox.information(self, 'Measurement canceled',
-                                'Measurement cancelled by user.',
-                                QMessageBox.Ok, QMessageBox.Ok)
+                                         'Measurement cancelled by user.',
+                                         QMessageBox.Ok, QMessageBox.Ok)
         if cancel == QMessageBox.Ok:
             self.btn_setup_start_stop.setChecked(False)
             self.btn_run_start_stop.setChecked(False)
@@ -556,7 +556,7 @@ class CapFreqWidget (QTabWidget):
         self.lbl_meas_status.setText(update_str)
 
 
-class CapFreqMeasureWorkerObject (QObject):
+class CapFreqMeasureWorkerObject(QObject):
     measurement_finished = pyqtSignal()
     freq_step_finished = pyqtSignal(list)
     meas_status_update = pyqtSignal(str)
@@ -609,10 +609,13 @@ class CapFreqMeasureWorkerObject (QObject):
         self.data_df = self.data_df.append(data, ignore_index=True)
 
     def blocking_func(self):
+        pass
+
+    def condition_equilibration_delay(self):
         count = 0
         while count < self.step_delay:
             time_left = str(timedelta(seconds=self.step_delay - count))
-            self.meas_status_update.emit('Sleeping until measurement time. Time Remaining: '
+            self.meas_status_update.emit('Waiting for sample equilibration. Time Remaining: '
                                          '{}s'.format(time_left))
             sleep(1)
             count += 1
@@ -649,18 +652,23 @@ class CapFreqMeasureWorkerObject (QObject):
             #  Return instrument to defaults while waiting so no one kills their samples
             self.parent.return_to_defaults()
             self.blocking_func()
-                
-            self.meas_status_update.emit('Measurement in progress...')
-            # Set lcr accordingly
+
+            # Set lcr according to step parameters
             self.parent.lcr.signal_level(self.parent.combo_signal_type.currentText(), self.step_osc)
             self.parent.lcr.dc_bias_level(self.parent.combo_bias_type.currentText(), self.step_bias)
 
+            # Generate frequency points for measurement
             freq_steps = Static.generate_log_steps(int(self.step_start),
                                                    int(self.step_stop),
                                                    int(self.parent.num_pts))
 
+            # Delay to allow sample to equilibrate at measurement parameters
+            self.condition_equilibration_delay()
+
             # Start a new data line in each plot
             self.parent.live_plot.canvas.start_new_line()
+
+            self.meas_status_update.emit('Measurement in progress...')
 
             for step_idx in range(0, len(freq_steps)):
                 # Set the lcr to the correct frequency

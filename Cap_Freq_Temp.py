@@ -1,8 +1,5 @@
 import sys
-
-import visa
 from PyQt5.QtCore import QThread
-
 from Sun_EC1X import SunEC1xChamber
 # from fake_sun import SunEC1xChamber
 from Cap_Freq import CapFreqWidget, CapFreqMeasureWorkerObject
@@ -10,9 +7,8 @@ from Agilent_E4980A import AgilentE4980A
 # from fake_E4980 import AgilentE4980A
 from File_Print_Headers import *
 from statistics import stdev, mean, StatisticsError
-import pandas as pd
 from Static_Functions import to_sigfigs
-from time import sleep
+from time import sleep, time
 from datetime import timedelta
 from pyvisa.errors import VisaIOError
 from PyQt5.QtWidgets import QLineEdit, QLabel, QGroupBox, QRadioButton, QApplication, QCheckBox
@@ -225,6 +221,7 @@ class CapFreqTempMeasureWorkerObject(CapFreqMeasureWorkerObject):
 
             # Blocking loop for temperature equilibration
             count = 0
+            start_time = time()
             for i in range(0, int(self.parent.dwell * 60)):
                 if count % self.parent.stab_int == 0:
                     user_T.append(self.parent.sun.get_user_temp())
@@ -246,6 +243,8 @@ class CapFreqTempMeasureWorkerObject(CapFreqMeasureWorkerObject):
             if self.stop:
                 return
             self.parent.enable_live_plots = True
+            print('Temperature stability check was scheduled for {} s, and took {} s.'.format(self.parent.dwell * 60,
+                                                                                              time() - start_time))
 
             try:
                 self.user_avg = mean(user_T)
@@ -277,7 +276,7 @@ class CapFreqTempMeasureWorkerObject(CapFreqMeasureWorkerObject):
                 if self.z_stdev > z_stdev_tol:
                     self.meas_status_update.emit(
                         'Impedance variation outside of tolerance: Tolerance={tol}, Measured Stdev={stdev}'
-                        .format(tol=z_stdev_tol, stdev=self.z_stdev))
+                            .format(tol=z_stdev_tol, stdev=self.z_stdev))
                     sleep(2)
                     self.blocking_func()
                 # print('Impedance stability within tolerance.')

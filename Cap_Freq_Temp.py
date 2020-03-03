@@ -222,11 +222,13 @@ class CapFreqTempMeasureWorkerObject(CapFreqMeasureWorkerObject):
             self.meas_status_update.emit('Beginning temperature stability check at {temp}...'
                                          .format(temp=self.step_temp))
             self.parent.enable_live_plots = False
+
+            # Blocking loop for temperature equilibration
             count = 0
             for i in range(0, int(self.parent.dwell * 60)):
                 if count % self.parent.stab_int == 0:
                     user_T.append(self.parent.sun.get_user_temp())
-                    sleep(0.1)
+                    sleep(0.05)
                     chamber_T.append(self.parent.sun.get_temp())
                     z.append(self.parent.lcr.get_data()[1])
                     if self.parent.radio_chamber_tc.isChecked():
@@ -238,7 +240,7 @@ class CapFreqTempMeasureWorkerObject(CapFreqMeasureWorkerObject):
                 self.meas_status_update.emit("Checking stability at {temp}. Time Remaining: {time}"
                                              .format(temp=self.step_temp,
                                                      time=time_left))
-                sleep(1)
+                sleep(0.93)
                 if self.stop:
                     break
             if self.stop:

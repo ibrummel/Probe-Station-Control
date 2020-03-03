@@ -23,11 +23,10 @@ class SunEC1xChamber(QObject):
             instruments = self.rm.list_resources()
 
             for instr in instruments:
-                print(instr)
                 curr_instr = self.rm.open_resource(instr, open_timeout=0.5)
                 # if the first 29 characters of the returned string match the LCR ID return
                 try:
-                    curr_instr.query("*IDN?")[0:28]
+                    curr_instr.query("*IDN?")
                     try:
                         curr_instr.close()
                     except AttributeError:

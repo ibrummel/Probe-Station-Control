@@ -121,7 +121,7 @@ class CapFreqTempWidget(CapFreqWidget):
     def generate_header(self, index, row):
         header_vars = self.get_header_vars(index, row)
 
-        if self.step_temp == self.prev_step_temp and not self.parent.check_always_stab.isChecked():
+        if self.measuring_worker.step_temp == self.measuring_worker.prev_step_temp and not self.parent.check_always_stab.isChecked():
             user_avg = str(to_sigfigs(self.user_avg, 5)) + '*'
             user_stdev = str(to_sigfigs(self.user_stdev, 5)) + '*'
             chamber_avg = str(to_sigfigs(self.chamber_avg, 5)) + '*'
@@ -256,8 +256,9 @@ class CapFreqTempMeasureWorkerObject(CapFreqMeasureWorkerObject):
             if self.stop:
                 return
             self.parent.enable_live_plots = True
-            print('Temperature stability check was scheduled for {} s, and took {} s.'.format(self.parent.dwell * 60,
-                                                                                              time() - start_time))
+            self.meas_status_update.emit('Temperature stability check was scheduled for '
+                                         '{} s, and took {} s.'.format(self.parent.dwell * 60,
+                                                                       time() - start_time))
 
             try:
                 self.user_avg = mean(user_T)

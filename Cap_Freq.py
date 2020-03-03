@@ -427,6 +427,29 @@ class CapFreqWidget(QTabWidget):
     def halt_measurement(self):
         self.stop_measurement_worker.emit()
         self.enable_live_plots = False
+        self.enable_live_vals = True
+        self.enable_controls(True)
+
+    def start_measurement(self):
+        self.set_save_file_path_by_line()
+        self.check_file_path()
+
+        self.setCurrentWidget(self.tab_run_meas)
+        # Set up the progress bar for this measurement
+        self.progress_bar_meas.setMinimum(0)
+        self.progress_bar_meas.setMaximum(self.num_measurements * self.num_pts)
+        self.progress_bar_meas.reset()
+        # Keep the user from changing values in the controls
+        self.enable_controls(False)
+        # Set live vals to update to last read value only
+        self.enable_live_vals = False
+        # Enable live plotting of values, clear previous data
+        self.live_plot.clear_data()
+        self.enable_live_plots = True
+
+        self.move_instr_to_worker_thread()
+        # Emit signal to start the worker measuring
+        self.measuring_thread.start()
 
     def dep_cancelled_by_user(self):
         cancel = QMessageBox.information(self, 'Measurement canceled',
@@ -463,27 +486,6 @@ class CapFreqWidget(QTabWidget):
                 self.dep_cancelled_by_user()
                 return
             # Fixme: maybe add more file save path checking i.e. blank or default location.
-
-    def start_measurement(self):
-        self.set_save_file_path_by_line()
-        self.check_file_path()
-
-        self.setCurrentWidget(self.tab_run_meas)
-        # Set up the progress bar for this measurement
-        self.progress_bar_meas.setMinimum(0)
-        self.progress_bar_meas.setMaximum(self.num_measurements * self.num_pts)
-        self.progress_bar_meas.reset()
-        # Keep the user from changing values in the controls
-        self.enable_controls(False)
-        # Set live vals to update to last read value only
-        self.enable_live_vals = False
-        # Enable live plotting of values, clear previous data
-        self.live_plot.clear_data()
-        self.enable_live_plots = True
-
-        self.move_instr_to_worker_thread()
-        # Emit signal to start the worker measuring
-        self.measuring_thread.start()
 
     # When the worker says it is done, save data and reset widget state to interactive
     def end_measurement(self):

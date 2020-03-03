@@ -121,6 +121,19 @@ class CapFreqTempWidget(CapFreqWidget):
     def generate_header(self, index, row):
         header_vars = self.get_header_vars(index, row)
 
+        if self.step_temp == self.prev_step_temp and not self.parent.check_always_stab.isChecked():
+            user_avg = str(to_sigfigs(self.user_avg, 5)) + '*'
+            user_stdev = str(to_sigfigs(self.user_stdev, 5)) + '*'
+            chamber_avg = str(to_sigfigs(self.chamber_avg, 5)) + '*'
+            chamber_stdev = str(to_sigfigs(self.chamber_stdev, 5)) + '*'
+            z_stdev = str(to_sigfigs(self.z_stdev, 5)) + '*'
+        else:
+            user_avg = str(to_sigfigs(self.user_avg, 5))
+            user_stdev = str(to_sigfigs(self.user_stdev, 5))
+            chamber_avg = str(to_sigfigs(self.chamber_avg, 5))
+            chamber_stdev = str(to_sigfigs(self.chamber_stdev, 5))
+            z_stdev = str(to_sigfigs(self.z_stdev, 5))
+
         header = CAP_FREQ_TEMP_HEADER.format(meas_type=self.lcr_function,
                                              meas_date=header_vars['date_now'],
                                              meas_time=header_vars['time_now'],
@@ -135,11 +148,11 @@ class CapFreqTempWidget(CapFreqWidget):
                                              ramp=header_vars['ramp'],
                                              dwell=header_vars['dwell'],
                                              stab_int=header_vars['stab_int'],
-                                             user_avg=to_sigfigs(self.measuring_worker.user_avg, 5),
-                                             user_stdev=to_sigfigs(self.measuring_worker.user_stdev, 5),
-                                             chamber_avg=to_sigfigs(self.measuring_worker.chamber_avg, 5),
-                                             chamber_stdev=to_sigfigs(self.measuring_worker.chamber_stdev, 5),
-                                             z_stdev=self.measuring_worker.z_stdev,
+                                             user_avg=user_avg,
+                                             user_stdev=user_stdev,
+                                             chamber_avg=chamber_avg,
+                                             chamber_stdev=chamber_stdev,
+                                             z_stdev=z_stdev,
                                              notes='Notes:\t{}'.format(header_vars['notes']))
 
         return header
@@ -280,12 +293,6 @@ class CapFreqTempMeasureWorkerObject(CapFreqMeasureWorkerObject):
                     sleep(2)
                     self.blocking_func()
                 # print('Impedance stability within tolerance.')
-        elif self.step_temp == self.prev_step_temp:
-            self.user_avg = str(self.user_avg) + '*'
-            self.user_stdev = str(self.user_stdev) + '*'
-            self.chamber_avg = str(self.chamber_avg) + '*'
-            self.chamber_stdev = str(self.chamber_stdev) + '*'
-            self.z_stdev = str(self.z_stdev) + '*'
 
         # Add the standard measurement delay from cap freq
         super().blocking_func()

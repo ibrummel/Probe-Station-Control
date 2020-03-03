@@ -280,11 +280,11 @@ class CapFreqTempMeasureWorkerObject(CapFreqMeasureWorkerObject):
                     self.blocking_func()
                 # print('Impedance stability within tolerance.')
         elif self.step_temp == self.prev_step_temp:
-            self.user_avg = str(self.user_avg) + '^'
-            self.user_stdev = str(self.user_stdev) + '^'
-            self.chamber_avg = str(self.chamber_avg) + '^'
-            self.chamber_stdev = str(self.chamber_stdev) + '^'
-            self.z_stdev = str(self.z_stdev) + '^'
+            self.user_avg = str(self.user_avg) + '*'
+            self.user_stdev = str(self.user_stdev) + '*'
+            self.chamber_avg = str(self.chamber_avg) + '*'
+            self.chamber_stdev = str(self.chamber_stdev) + '*'
+            self.z_stdev = str(self.z_stdev) + '*'
 
         # Add the standard measurement delay from cap freq
         super().blocking_func()

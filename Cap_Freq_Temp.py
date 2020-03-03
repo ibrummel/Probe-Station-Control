@@ -121,18 +121,18 @@ class CapFreqTempWidget(CapFreqWidget):
     def generate_header(self, index, row):
         header_vars = self.get_header_vars(index, row)
 
-        if self.measuring_worker.step_temp == self.measuring_worker.prev_step_temp and not self.parent.check_always_stab.isChecked():
-            user_avg = str(to_sigfigs(self.user_avg, 5)) + '*'
-            user_stdev = str(to_sigfigs(self.user_stdev, 5)) + '*'
-            chamber_avg = str(to_sigfigs(self.chamber_avg, 5)) + '*'
-            chamber_stdev = str(to_sigfigs(self.chamber_stdev, 5)) + '*'
-            z_stdev = str(to_sigfigs(self.z_stdev, 5)) + '*'
+        if self.measuring_worker.step_temp == self.measuring_worker.prev_step_temp and not self.check_always_stab.isChecked():
+            user_avg = str(to_sigfigs(self.measuring_worker.user_avg, 5)) + '*'
+            user_stdev = str(to_sigfigs(self.measuring_worker.user_stdev, 5)) + '*'
+            chamber_avg = str(to_sigfigs(self.measuring_worker.chamber_avg, 5)) + '*'
+            chamber_stdev = str(to_sigfigs(self.measuring_worker.chamber_stdev, 5)) + '*'
+            z_stdev = str(to_sigfigs(self.measuring_worker.z_stdev, 5)) + '*'
         else:
-            user_avg = str(to_sigfigs(self.user_avg, 5))
-            user_stdev = str(to_sigfigs(self.user_stdev, 5))
-            chamber_avg = str(to_sigfigs(self.chamber_avg, 5))
-            chamber_stdev = str(to_sigfigs(self.chamber_stdev, 5))
-            z_stdev = str(to_sigfigs(self.z_stdev, 5))
+            user_avg = str(to_sigfigs(self.measuring_worker.user_avg, 5))
+            user_stdev = str(to_sigfigs(self.measuring_worker.user_stdev, 5))
+            chamber_avg = str(to_sigfigs(self.measuring_worker.chamber_avg, 5))
+            chamber_stdev = str(to_sigfigs(self.measuring_worker.chamber_stdev, 5))
+            z_stdev = str(to_sigfigs(self.measuring_worker.z_stdev, 5))
 
         header = CAP_FREQ_TEMP_HEADER.format(meas_type=self.lcr_function,
                                              meas_date=header_vars['date_now'],

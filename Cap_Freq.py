@@ -646,7 +646,6 @@ class CapFreqMeasureWorkerObject(QObject):
             # Set test params for this measurement
             self.set_test_params(row)
 
-            # ToDo: Should delay be added to the current measurement labels?
             # Set the information labels to match this row
             self.set_current_meas_labels()
 

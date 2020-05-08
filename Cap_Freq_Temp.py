@@ -228,7 +228,6 @@ class CapFreqTempMeasureWorkerObject(CapFreqMeasureWorkerObject):
 
         if self.step_temp != self.prev_step_temp or self.parent.check_always_stab.isChecked():
             # After reaching setpoint, check stability
-            # ToDo: Make the print statements here appear in a pop-up with a progress bar
             self.meas_status_update.emit('Beginning temperature stability check at {temp}...'
                                          .format(temp=self.step_temp))
             self.parent.enable_live_plots = False

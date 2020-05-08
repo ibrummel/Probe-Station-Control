@@ -207,6 +207,7 @@ class CapFreqTempMeasureWorkerObject(CapFreqMeasureWorkerObject):
         if self.step_temp != self.prev_step_temp:
             # Send the command to change the temperature
             self.parent.sun.set_setpoint(self.step_temp)
+            self.meas_status_update.emit("Waiting for chamber to reach {}...".format(self.step_temp))
 
             # Get the current temperature and loop umtil setpoint is achieved
             check_temp = float(self.parent.sun.get_temp())

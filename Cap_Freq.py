@@ -629,6 +629,7 @@ class CapFreqMeasureWorkerObject(QObject):
         self.meas_status_update.emit('Measurement finished.')
 
     def measure(self):
+        self.meas_status_update.emit("Starting measurement.")
         # Write configured parameters to lcr
         self.parent.setup_lcr()
 

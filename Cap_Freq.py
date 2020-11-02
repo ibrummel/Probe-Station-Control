@@ -702,13 +702,9 @@ class CapFreqMeasureWorkerObject(QObject):
         self.measurement_finished.emit()
 
 
-try:
-    standalone = sys.argv[1]
-except IndexError:
-    standalone = False
-
-if standalone == 'capfreq':
-    lcr = AgilentE4980A(parent=None, gpib_addr='GPIB0::18::INSTR')
+if __name__ == "__main__":
+#if standalone == 'capfreq':
+    lcr = AgilentE4980A(parent=None, gpib_addr='GPIB0::17::INSTR')
     app = QApplication(sys.argv)
     main_window = CapFreqWidget(lcr=lcr)
     main_window.show()

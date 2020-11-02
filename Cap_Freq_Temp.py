@@ -299,13 +299,8 @@ class CapFreqTempMeasureWorkerObject(CapFreqMeasureWorkerObject):
         super().blocking_func()
 
 
-try:
-    standalone = sys.argv[1]
-except IndexError:
-    standalone = False
-
-if standalone == 'capfreqtemp':
-    lcr = AgilentE4980A(parent=None, gpib_addr='GPIB0::18::INSTR')
+if __name__ == "__main__":
+    lcr = AgilentE4980A(parent=None)
     sun = SunEC1xChamber(parent=None, gpib_addr='GPIB0::6::INSTR')
     app = QApplication(sys.argv)
     main_window = CapFreqTempWidget(lcr=lcr, sun=sun)

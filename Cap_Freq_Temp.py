@@ -298,6 +298,16 @@ class CapFreqTempMeasureWorkerObject(CapFreqMeasureWorkerObject):
         # Add the standard measurement delay from cap freq
         super().blocking_func()
 
+        # trigger measurement on the SP-200
+        self.parent.sun.set_analog_output(0, 255)
+        sleep(0.25)
+        self.parent.sun.set_analog_output(0, 0)
+        # Sleep through most of the measurement
+        sleep(6*60)
+        # Check every quarter second to see if the SP-200 has set the complete trigger to high
+        while(self.parent.sun.read_analog_input(0, 0) < 18000):
+            sleep(0.25)
+
 
 if __name__ == "__main__":
     lcr = AgilentE4980A(parent=None)

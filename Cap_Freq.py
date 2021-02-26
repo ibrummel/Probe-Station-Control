@@ -655,44 +655,6 @@ class CapFreqMeasureWorkerObject(QObject):
             self.parent.return_to_defaults()
             self.blocking_func()
 
-            # Set lcr according to step parameters
-            self.parent.lcr.signal_level(self.parent.combo_signal_type.currentText(), self.step_osc)
-            self.parent.lcr.dc_bias_level(self.parent.combo_bias_type.currentText(), self.step_bias)
-
-            # Generate frequency points for measurement
-            freq_steps = Static.generate_log_steps(int(self.step_start),
-                                                   int(self.step_stop),
-                                                   int(self.parent.num_pts))
-
-            # Delay to allow sample to equilibrate at measurement parameters
-            self.condition_equilibration_delay()
-
-            # Start a new data line in each plot
-            self.parent.live_plot.canvas.start_new_line()
-
-            self.meas_status_update.emit('Measurement in progress...')
-
-            for step_idx in range(0, len(freq_steps)):
-                # Set the lcr to the correct frequency
-                self.parent.lcr.signal_frequency(freq_steps[step_idx])
-
-                # Wait for measurement to stabilize (50ms to allow signal to stabilize + user set delay)
-                sleep(self.parent.meas_delay + 0.05)
-
-                # Trigger the measurement to start
-                self.parent.lcr.trigger_init()
-
-                # Read data and store it to the dataframe
-                self.read_new_data()
-
-                # Emit signal to update progress bar
-                self.freq_step_finished.emit([int(index.split('M')[-1]), step_idx])
-                if self.stop:
-                    break
-
-            # Store the measurement data in a field of the tests_df
-            self.parent.header_dict[index] = self.parent.generate_header(index, row)
-            self.parent.data_dict[index] = self.data_df
             self.parent.save_data()
             if self.stop:
                 break

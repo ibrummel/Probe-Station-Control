@@ -307,6 +307,7 @@ class CapFreqTempMeasureWorkerObject(CapFreqMeasureWorkerObject):
         # Check every quarter second to see if the SP-200 has set the complete trigger to high
         while(self.parent.sun.read_analog_input(0, 0) < 18000):
             sleep(0.25)
+        print("Saw High value on trigger out pin, moving on.")
 
 
 if __name__ == "__main__":

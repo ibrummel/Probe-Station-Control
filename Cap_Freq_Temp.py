@@ -3,8 +3,8 @@ from PyQt5.QtCore import QThread
 from Sun_EC1X import SunEC1xChamber
 # from fake_sun import SunEC1xChamber
 from Cap_Freq import CapFreqWidget, CapFreqMeasureWorkerObject
-from Agilent_E4980A import AgilentE4980A
-# from fake_E4980 import AgilentE4980A
+# from Agilent_E4980A import AgilentE4980A
+from fake_E4980 import AgilentE4980A
 from File_Print_Headers import *
 from statistics import stdev, mean, StatisticsError
 from Static_Functions import to_sigfigs

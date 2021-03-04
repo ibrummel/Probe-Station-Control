@@ -327,7 +327,7 @@ class CapFreqWidget(QTabWidget):
             for (icol, col_val) in enumerate(tmpcols):
                 self.table_meas_setup.item(irow, icol).setText(str(col_val))
 
-    def generate_header(self, index, row):
+    def generate_header(self, index, row, external_measurement=False):
         header_vars = self.get_header_vars(index, row)
 
         header = CAP_FREQ_HEADER.format(meas_type=self.lcr_function,
@@ -660,7 +660,7 @@ class CapFreqMeasureWorkerObject(QObject):
             self.freq_step_finished.emit([int(index.split('M')[-1]), 0])
 
             # Store the measurement data in a field of the tests_df
-            self.parent.header_dict[index] = self.parent.generate_header(index, row)
+            self.parent.header_dict[index] = self.parent.generate_header(index, row, external_measurement=True)
             self.parent.data_dict[index] = self.data_df
             self.parent.save_data()
             if self.stop:

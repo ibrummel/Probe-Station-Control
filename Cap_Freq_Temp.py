@@ -118,7 +118,7 @@ class CapFreqTempWidget(CapFreqWidget):
 
         return header_vars
 
-    def generate_header(self, index, row):
+    def generate_header(self, index, row, external_measurement=False):
         header_vars = self.get_header_vars(index, row)
 
         if self.measuring_worker.step_temp == self.measuring_worker.prev_step_temp and not self.check_always_stab.isChecked():
@@ -138,12 +138,12 @@ class CapFreqTempWidget(CapFreqWidget):
                                              meas_date=header_vars['date_now'],
                                              meas_time=header_vars['time_now'],
                                              meas_num=header_vars['meas_number'],
-                                             start_freq=header_vars['start'],
-                                             stop_freq=header_vars['stop'],
-                                             osc_type=header_vars['osc_type'],
-                                             osc=header_vars['osc'],
-                                             bias_type=header_vars['bias_type'],
-                                             bias=header_vars['bias'],
+                                             start_freq="External Measurement",
+                                             stop_freq="External Measurement",
+                                             osc_type="External Measurement",
+                                             osc="External Measurement",
+                                             bias_type="External Measurement",
+                                             bias="External Measurement",
                                              step_delay=self.meas_delay,
                                              ramp=header_vars['ramp'],
                                              dwell=header_vars['dwell'],

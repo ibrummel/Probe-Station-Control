@@ -655,6 +655,10 @@ class CapFreqMeasureWorkerObject(QObject):
             self.parent.return_to_defaults()
             self.blocking_func()
 
+            # Update the progress bar for the measurement [measurement number, step number]. Note step
+            #  number is unknown because we are using the external frequency response analyzer.
+            self.freq_step_finished.emit([int(index.split('M')[-1]), 0])
+
             # Store the measurement data in a field of the tests_df
             self.parent.header_dict[index] = self.parent.generate_header(index, row)
             self.parent.data_dict[index] = self.data_df

@@ -3,6 +3,7 @@ from Agilent_E4980A_Constants import *
 import visa
 from pyvisa.errors import VisaIOError
 from PyQt5.QtCore import QObject, pyqtSignal
+from time import sleep
 
 
 class AgilentE4980A(QObject):
@@ -219,20 +220,22 @@ class AgilentE4980A(QObject):
 
     def get_data(self):
         try:
-            data = self.lcr.query(':FETC?')
+            rec_data = self.lcr.query(':FETC?')
+            rec_data = rec_data.rstrip().split(',')
+            rec_data = [float(x) for x in rec_data]
         except VisaIOError as error:
-            print('Error on retrieving data from LCR: {}\nRetrying...'.format(error.abbreviation))
-            self.get_data()
-        data = data.rstrip().split(',')
-
-        try:
-            data = [float(x) for x in data]
-        except ValueError:
-            print("Unable to read data from LCR - Float conversion error. Retrying...")
-            self.get_data()
-        freq = self.get_signal_frequency()
-
-        data.insert(0, freq)
-
-        self.new_data.emit(data)
-        return data
+            if error.abbreviation == "VI_ERROR_TMO":
+                print('LCR did not return data in time ({}).\tRetrying...'.format(error.abbreviation))
+            else:
+                print('Error on retrieving data from LCR: {}\nRetrying...'.format(error.abbreviation))
+            sleep(0.1)
+            return self.get_data()
+        except ValueError as error:
+            print("Unable to read data from LCR - Float conversion error ({}) Retrying...".format(error))
+            sleep(0.1)
+            return self.get_data()
+        else:
+            freq = self.get_signal_frequency()
+            rec_data.insert(0, freq)
+            self.new_data.emit(rec_data)
+            return rec_data

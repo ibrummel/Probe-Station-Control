@@ -31,7 +31,7 @@ FUNC_DICT = {'Cp-D': 'CPD',
              'G-B': 'GB',
              'Y-Thd': 'YTD',
              'Y-Thr': 'YTR',
-             'Vdc-Idc': 'VDID'}
+             'Vdc-Idc': 'VDID',}
 
 PARAMETERS_BY_FUNC = {'CPD': ['Capacitance (Parallel) [F]', 'Loss Tangent', 'Data Status'],
                       'CPQ': ['Capacitance (Parallel) [F]', 'Quality Factor', 'Data Status'],

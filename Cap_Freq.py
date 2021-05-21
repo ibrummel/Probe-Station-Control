@@ -336,6 +336,10 @@ class CapFreqWidget(QTabWidget):
                                         meas_num=header_vars['meas_number'],
                                         start_freq=header_vars['start'],
                                         stop_freq=header_vars['stop'],
+                                        range=self.range,
+                                        num_pts=self.num_pts,
+                                        data_averaging=self.data_averaging,
+                                        step_delay=header_vars['step_delay'],
                                         osc_type=header_vars['osc_type'],
                                         osc=header_vars['osc'],
                                         bias_type=header_vars['bias_type'],
@@ -371,6 +375,7 @@ class CapFreqWidget(QTabWidget):
         else:
             header_vars['bias_type'] = 'UNKNOWN'
 
+        header_vars['step_delay'] = row[self.meas_setup_hheaders[4]]
         header_vars['notes'] = self.ln_notes.text()
 
         return header_vars

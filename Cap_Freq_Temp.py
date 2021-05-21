@@ -134,26 +134,19 @@ class CapFreqTempWidget(CapFreqWidget):
             chamber_stdev = str(to_sigfigs(self.measuring_worker.chamber_stdev, 5))
             z_stdev = str(to_sigfigs(self.measuring_worker.z_stdev, 5))
 
-        header = CAP_FREQ_TEMP_HEADER.format(meas_type=self.lcr_function,
-                                             meas_date=header_vars['date_now'],
-                                             meas_time=header_vars['time_now'],
-                                             meas_num=header_vars['meas_number'],
-                                             start_freq=header_vars['start'],
-                                             stop_freq=header_vars['stop'],
-                                             osc_type=header_vars['osc_type'],
-                                             osc=header_vars['osc'],
-                                             bias_type=header_vars['bias_type'],
-                                             bias=header_vars['bias'],
-                                             pre_meas_delay=self.pre_meas_delay,
-                                             ramp=header_vars['ramp'],
-                                             dwell=header_vars['dwell'],
-                                             stab_int=header_vars['stab_int'],
-                                             user_avg=user_avg,
-                                             user_stdev=user_stdev,
-                                             chamber_avg=chamber_avg,
-                                             chamber_stdev=chamber_stdev,
-                                             z_stdev=z_stdev,
-                                             notes='Notes:\t{}'.format(header_vars['notes']))
+        # Get the Cap Freq header to handle most of the generation.
+        header = super().generate_header(index, row)
+        # Replace the separator for the sample notes with the thermal information + the separator for
+        #  sample notes.
+        header = header.replace('\n***********Sample Notes***********',
+                                CAP_FREQ_TEMP_HEADER.format(ramp=header_vars['ramp'],
+                                                            dwell=header_vars['dwell'],
+                                                            stab_int=header_vars['stab_int'],
+                                                            user_avg=user_avg,
+                                                            user_stdev=user_stdev,
+                                                            chamber_avg=chamber_avg,
+                                                            chamber_stdev=chamber_stdev,
+                                                            z_stdev=z_stdev, ))
 
         return header
 

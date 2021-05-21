@@ -38,7 +38,7 @@ class CapFreqWidget(QTabWidget):
         self.signal_type = 'voltage'
         self.bias_type = 'voltage'
         self.num_pts = 50
-        self.meas_delay = 0.0
+        self.pre_meas_delay = 0.0
         self.enable_live_plots = False
         self.enable_live_vals = True
 
@@ -73,8 +73,8 @@ class CapFreqWidget(QTabWidget):
         self.combo_bias_type = self.findChild(QComboBox, 'combo_bias_type')
         self.ln_num_pts = self.findChild(QLineEdit, 'ln_num_pts')
         self.ln_num_pts.setText(str(self.num_pts))
-        self.ln_meas_delay = self.findChild(QLineEdit, 'ln_step_delay')
-        self.ln_meas_delay.setText(str(self.meas_delay))
+        self.ln_pre_meas_delay = self.findChild(QLineEdit, 'ln_step_delay')
+        self.ln_pre_meas_delay.setText(str(self.pre_meas_delay))
         self.ln_notes = self.findChild(QLineEdit, 'ln_notes')
         self.ln_save_file = self.findChild(QLineEdit, 'ln_save_file')
         self.btn_save_file = self.findChild(QToolButton, 'btn_save_file')
@@ -139,7 +139,7 @@ class CapFreqWidget(QTabWidget):
         self.combo_meas_time.currentTextChanged.connect(self.change_meas_aperture)
         self.ln_data_averaging.editingFinished.connect(self.change_meas_aperture)
         self.ln_num_pts.editingFinished.connect(self.change_num_pts)
-        self.ln_meas_delay.editingFinished.connect(self.change_step_delay)
+        self.ln_pre_meas_delay.editingFinished.connect(self.change_pre_meas_delay)
         self.combo_range.currentTextChanged.connect(self.change_impedance_range)
         self.combo_signal_type.currentTextChanged.connect(self.change_signal_type)
         self.combo_bias_type.currentTextChanged.connect(self.change_bias_type)
@@ -224,12 +224,12 @@ class CapFreqWidget(QTabWidget):
             self.num_pts = 50
             self.ln_num_pts.setText(str(self.num_pts))
 
-    def change_step_delay(self):
+    def change_pre_meas_delay(self):
         try:
-            self.meas_delay = float(self.ln_meas_delay.text())
+            self.pre_meas_delay = float(self.ln_pre_meas_delay.text())
         except ValueError:
-            self.meas_delay = 0.0
-        self.ln_meas_delay.setText(str(self.meas_delay))
+            self.pre_meas_delay = 0.0
+        self.ln_pre_meas_delay.setText(str(self.pre_meas_delay))
 
     def change_impedance_range(self):
         self.range = self.combo_range.currentText()
@@ -340,7 +340,7 @@ class CapFreqWidget(QTabWidget):
                                         osc=header_vars['osc'],
                                         bias_type=header_vars['bias_type'],
                                         bias=header_vars['bias'],
-                                        step_delay=self.meas_delay,
+                                        pre_meas_delay=self.pre_meas_delay,
                                         notes='Notes:\t{}'.format(header_vars['notes']))
 
         return header
@@ -677,7 +677,7 @@ class CapFreqMeasureWorkerObject(QObject):
                 self.parent.lcr.signal_frequency(freq_steps[step_idx])
 
                 # Wait for measurement to stabilize (50ms to allow signal to stabilize + user set delay)
-                sleep(self.parent.meas_delay + 0.05)
+                sleep(self.parent.pre_meas_delay + 0.05)
 
                 # Trigger the measurement to start
                 self.parent.lcr.trigger_init()

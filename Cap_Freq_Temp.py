@@ -144,7 +144,7 @@ class CapFreqTempWidget(CapFreqWidget):
                                              osc=header_vars['osc'],
                                              bias_type=header_vars['bias_type'],
                                              bias=header_vars['bias'],
-                                             step_delay=self.meas_delay,
+                                             pre_meas_delay=self.pre_meas_delay,
                                              ramp=header_vars['ramp'],
                                              dwell=header_vars['dwell'],
                                              stab_int=header_vars['stab_int'],

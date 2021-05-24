@@ -29,7 +29,18 @@ class HotplateRobot(object):
         update = start_char + "p," + str(position) + end_char
         self.robot.write(update.encode('utf-8'))
 
+    def set_setpoint(self, stpt: float):
+        pos = int(4.08339e-5*(stpt**2) - (2.8737e-1 * stpt) + 1.54425e2)
+
+        self.update_position(pos)
+
     def query_param(self, query: str, start_char='?', end_char='\r'):
         query = start_char + query + end_char
         self.robot.write(query.encode('utf-8'))
         return self.read_response()
+
+    def get_temp(self):
+        temperature = self.query_param('t')
+        temperature = float(temperature)
+
+        return temperature

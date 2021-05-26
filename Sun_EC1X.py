@@ -1,5 +1,5 @@
 import visa
-from pyvisa.errors import  VisaIOError
+from pyvisa.errors import VisaIOError
 from PyQt5.QtCore import QObject, pyqtSignal
 from time import sleep
 
@@ -44,7 +44,6 @@ class SunEC1xChamber(QObject):
             print('Error on getting chamber temp: {}'.format(error.abbreviation))
             return -9999.0
 
-
     def get_user_temp(self):
         try:
             return float(self.sun.query('uchan?'))
@@ -57,3 +56,9 @@ class SunEC1xChamber(QObject):
             self.sun.write('set={}'.format(stpt))
         except VisaIOError as error:
             print('Error on writing setpoint: {}'.format(error.abbreviation))
+
+    def set_ramprate(self, ramprate: float):
+        try:
+            self.sun.write('RATE={}'.format(ramprate))
+        except VisaIOError as error:
+            print('Error on writing ramprate: {}'.format(error.abbreviation))

@@ -33,7 +33,7 @@ class SunEC1xChamber(QObject):
                 except VisaIOError:
                     print('Instrument at {} did not accept ID query, assuming'
                           ' this is the sun environmental chamber'.format(
-                        instr))
+                            instr))
                     return curr_instr
 
     def get_temp(self):
@@ -65,6 +65,12 @@ class SunEC1xChamber(QObject):
             self.sun.write('set={}'.format(stpt))
         except VisaIOError as error:
             print('Error on writing setpoint: {}'.format(error.abbreviation))
+
+    def set_ramprate(self, ramprate: float):
+        try:
+            self.sun.write('RATE={}'.format(ramprate))
+        except VisaIOError as error:
+            print('Error on writing ramprate: {}'.format(error.abbreviation))
 
     def set_analog_output(self, output_num: int, value: int):
         if output_num not in [0, 1, 2, 3] or not (0 <= value <= 255):

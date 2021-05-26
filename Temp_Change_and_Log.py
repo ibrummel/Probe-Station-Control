@@ -75,3 +75,19 @@ def temp_step(step_temp: float, log_file: str, ramp=5.0, dwell=30, stab_int=10, 
 
     # if equilibrium is good, write temp data to a file
     df.to_csv(log_file, sep=',',)
+
+
+if __name__ == '__main__':
+    step_temp = sys.argv[1]
+    log_file = sys.argv[2]
+    try:
+        ramp = sys.argv[3]
+        dwell = sys.argv[4]
+        stab_int = sys.argv[5]
+        temp_tol = sys.argv[6]
+        stdev_tol = sys.argv[7]
+
+        temp_step(step_temp, log_file, ramp, dwell, stab_int, temp_tol, stdev_tol)
+    except IndexError:
+        temp_step(step_temp, log_file)
+

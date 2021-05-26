@@ -78,14 +78,14 @@ def temp_step(step_temp: float, log_file: str, ramp=5.0, dwell=30, stab_int=10, 
 
 
 if __name__ == '__main__':
-    step_temp = sys.argv[1]
+    step_temp = int(sys.argv[1])
     log_file = sys.argv[2]
     try:
-        ramp = sys.argv[3]
-        dwell = sys.argv[4]
-        stab_int = sys.argv[5]
-        temp_tol = sys.argv[6]
-        stdev_tol = sys.argv[7]
+        ramp = float(sys.argv[3])
+        dwell = float(sys.argv[4])
+        stab_int = int(sys.argv[5])
+        temp_tol = float(sys.argv[6])
+        stdev_tol = float(sys.argv[7])
 
         temp_step(step_temp, log_file, ramp, dwell, stab_int, temp_tol, stdev_tol)
     except IndexError:

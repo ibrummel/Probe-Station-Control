@@ -1,0 +1,68 @@
+//
+// !!! WARNING !!! AUTO-GENERATED FILE!
+// PLEASE DO NOT MODIFY IT AND USE "platformio.ini":
+// https://docs.platformio.org/page/projectconf/section_env_build.html#build-flags
+//
+{
+    "configurations": [
+        {
+            "name": "PlatformIO",
+            "includePath": [
+                "c:/Users/Ian/Box Sync/Software/PycharmProjects/LCR_Control/Hotplate_Control_Robot/include",
+                "c:/Users/Ian/Box Sync/Software/PycharmProjects/LCR_Control/Hotplate_Control_Robot/src",
+                "c:/Users/Ian/Box Sync/Software/PycharmProjects/LCR_Control/Hotplate_Control_Robot/.pio/libdeps/promicro/Servo/src",
+                "c:/Users/Ian/Box Sync/Software/PycharmProjects/LCR_Control/Hotplate_Control_Robot/.pio/libdeps/promicro/Adafruit MAX31856 library",
+                "c:/Users/Ian/Box Sync/Software/PycharmProjects/LCR_Control/Hotplate_Control_Robot/.pio/libdeps/promicro/Adafruit BusIO",
+                "C:/Users/Ian/.platformio/packages/framework-arduino-avr/libraries/Wire/src",
+                "C:/Users/Ian/.platformio/packages/framework-arduino-avr/libraries/SPI/src",
+                "C:/Users/Ian/.platformio/packages/framework-arduino-avr/cores/arduino",
+                "C:/Users/Ian/.platformio/packages/framework-arduino-avr/variants/sparkfun_promicro",
+                "C:/Users/Ian/.platformio/packages/framework-arduino-avr/libraries/EEPROM/src",
+                "C:/Users/Ian/.platformio/packages/framework-arduino-avr/libraries/HID/src",
+                "C:/Users/Ian/.platformio/packages/framework-arduino-avr/libraries/SoftwareSerial/src",
+                "C:/Users/Ian/.platformio/packages/tool-unity",
+                ""
+            ],
+            "browse": {
+                "limitSymbolsToIncludedHeaders": true,
+                "path": [
+                    "c:/Users/Ian/Box Sync/Software/PycharmProjects/LCR_Control/Hotplate_Control_Robot/include",
+                    "c:/Users/Ian/Box Sync/Software/PycharmProjects/LCR_Control/Hotplate_Control_Robot/src",
+                    "c:/Users/Ian/Box Sync/Software/PycharmProjects/LCR_Control/Hotplate_Control_Robot/.pio/libdeps/promicro/Servo/src",
+                    "c:/Users/Ian/Box Sync/Software/PycharmProjects/LCR_Control/Hotplate_Control_Robot/.pio/libdeps/promicro/Adafruit MAX31856 library",
+                    "c:/Users/Ian/Box Sync/Software/PycharmProjects/LCR_Control/Hotplate_Control_Robot/.pio/libdeps/promicro/Adafruit BusIO",
+                    "C:/Users/Ian/.platformio/packages/framework-arduino-avr/libraries/Wire/src",
+                    "C:/Users/Ian/.platformio/packages/framework-arduino-avr/libraries/SPI/src",
+                    "C:/Users/Ian/.platformio/packages/framework-arduino-avr/cores/arduino",
+                    "C:/Users/Ian/.platformio/packages/framework-arduino-avr/variants/sparkfun_promicro",
+                    "C:/Users/Ian/.platformio/packages/framework-arduino-avr/libraries/EEPROM/src",
+                    "C:/Users/Ian/.platformio/packages/framework-arduino-avr/libraries/HID/src",
+                    "C:/Users/Ian/.platformio/packages/framework-arduino-avr/libraries/SoftwareSerial/src",
+                    "C:/Users/Ian/.platformio/packages/tool-unity",
+                    ""
+                ]
+            },
+            "defines": [
+                "PLATFORMIO=50101",
+                "ARDUINO_AVR_PROMICRO16",
+                "F_CPU=16000000L",
+                "ARDUINO_ARCH_AVR",
+                "ARDUINO=10808",
+                "USB_VID=0x1B4F",
+                "USB_PID=0x9206",
+                "USB_PRODUCT=\"SparkFun Pro Micro\"",
+                "USB_MANUFACTURER=\"SparkFun\"",
+                "__AVR_ATmega32U4__",
+                ""
+            ],
+            "cStandard": "c11",
+            "cppStandard": "c++11",
+            "compilerPath": "C:/Users/Ian/.platformio/packages/toolchain-atmelavr/bin/avr-gcc.exe",
+            "compilerArgs": [
+                "-mmcu=atmega32u4",
+                ""
+            ]
+        }
+    ],
+    "version": 4
+}

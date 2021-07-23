@@ -7,8 +7,8 @@ from time import sleep
 class SunEC1xChamber(QObject):
     # Place signals here or they won't work
 
-    def __init__(self, parent=None, gpib_addr=None):
-        super().__init__()
+    def __init__(self, gpib_addr=None):
+        super(SunEC1xChamber, self).__init__()
 
         self.rm = visa.ResourceManager()
         if gpib_addr is not None:
@@ -19,23 +19,29 @@ class SunEC1xChamber(QObject):
         self.sun = self.connect_sun()
 
     def connect_sun(self):
-        if self.sun_addr != '':
+        if self.sun_addr == '':
             instruments = self.rm.list_resources()
+        else:
+            instruments = [self.sun_addr]
 
-            for instr in instruments:
-                curr_instr = self.rm.open_resource(instr, open_timeout=0.5)
-                # if the first 29 characters of the returned string match the LCR ID return
-                try:
-                    curr_instr.query("*IDN?")
+        for instr in instruments:
+            curr_instr = self.rm.open_resource(instr, open_timeout=0.5)
+            try:
+                version_str = curr_instr.query("VER?")
+
+                if version_str == "SUN EC1x V_10.10\r\n":
+                    print("Successfully connected to sun with version string {} "
+                          "at GPIB address {}".format(version_str, instr))
+                    return curr_instr
+                else:
                     try:
                         curr_instr.close()
                     except AttributeError:
                         print('Error closing instrument that should be open')
-                except VisaIOError:
-                    print('Instrument at {} did not accept ID query, assuming'
-                          ' this is the sun environmental chamber'.format(
-                            instr))
-                    return curr_instr
+            except VisaIOError:
+                pass
+
+        raise ValueError("Failed to find sun chamber. Please reinitialize object with valid address.")
 
     def get_temp(self):
         try:
@@ -57,8 +63,23 @@ class SunEC1xChamber(QObject):
         except VisaIOError as error:
             print('Error on writing setpoint: {}'.format(error.abbreviation))
 
+    def get_setpoint(self):
+        try:
+            return float(self.sun.query('set?'))
+        except VisaIOError as error:
+            print('Error on getting setpoint: {}').format(error.abbreviation)
+            return -9999.0
+
     def set_ramprate(self, ramprate: float):
         try:
             self.sun.write('RATE={}'.format(ramprate))
         except VisaIOError as error:
             print('Error on writing ramprate: {}'.format(error.abbreviation))
+
+    def get_ramprate(self):
+        try:
+            return float(self.sun.query("rate?"))
+        except VisaIOError as error:
+            print("Error on getting ramp rate: {}".format(error.abbreviation))
+            return -9999.0
+

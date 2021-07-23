@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1265</width>
-    <height>931</height>
+    <width>1486</width>
+    <height>967</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -25,7 +25,7 @@
    </attribute>
    <layout class="QVBoxLayout" name="verticalLayout_2">
     <item>
-     <layout class="QHBoxLayout" name="horizontalLayout">
+     <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,0">
       <item>
        <widget class="QGroupBox" name="gbox_meas_set_params">
         <property name="title">
@@ -73,18 +73,14 @@
           <widget class="QLineEdit" name="ln_num_pts"/>
          </item>
          <item row="4" column="0">
-          <widget class="QLabel" name="lbl_pre_meas_delay">
+          <widget class="QLabel" name="lbl_step_delay">
            <property name="text">
-            <string>Pre Measurement Delay</string>
+            <string>Per Step Delay:</string>
            </property>
           </widget>
          </item>
          <item row="4" column="1">
-          <widget class="QLineEdit" name="ln_pre_meas_delay">
-           <property name="toolTip">
-            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:10pt;&quot;&gt;Provide a delay to be used before each measurement to allow for sample relaxation after a measurement completes. Default/blank is no delay. Value in ms.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-           </property>
-          </widget>
+          <widget class="QLineEdit" name="ln_step_delay"/>
          </item>
          <item row="5" column="0">
           <widget class="QLabel" name="lbl_range">
@@ -151,142 +147,170 @@
        </widget>
       </item>
       <item>
-       <widget class="QGroupBox" name="gbox_thermal_settings">
-        <property name="title">
-         <string>Thermal Management Settings</string>
-        </property>
-        <layout class="QFormLayout" name="formLayout_3">
-         <property name="labelAlignment">
-          <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
-         </property>
-         <item row="0" column="0">
-          <widget class="QLabel" name="lbl_ramp">
-           <property name="text">
-            <string>Ramp Rate:</string>
+       <layout class="QVBoxLayout" name="verticalLayout_9" stretch="0,0,1">
+        <item>
+         <layout class="QFormLayout" name="formLayout_5">
+          <item row="0" column="0">
+           <widget class="QLabel" name="lbl_temp_control">
+            <property name="text">
+             <string>Temperature Control Device:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QComboBox" name="combo_temp_control"/>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <widget class="Line" name="line">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QGroupBox" name="gbox_thermal_settings">
+          <property name="title">
+           <string>Thermal Management Settings</string>
+          </property>
+          <layout class="QFormLayout" name="formLayout_3">
+           <property name="labelAlignment">
+            <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
            </property>
-          </widget>
-         </item>
-         <item row="0" column="1">
-          <widget class="QLineEdit" name="ln_ramp"/>
-         </item>
-         <item row="1" column="0">
-          <widget class="QLabel" name="lbl_dwell">
-           <property name="text">
-            <string>Equilibration Time:</string>
-           </property>
-          </widget>
-         </item>
-         <item row="1" column="1">
-          <widget class="QLineEdit" name="ln_dwell"/>
-         </item>
-         <item row="2" column="0">
-          <widget class="QLabel" name="lbl_stability_interval">
-           <property name="toolTip">
-            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Sets the interval (in s) between measurements during the temperature stability check.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-           </property>
-           <property name="text">
-            <string>Meas Interval:</string>
-           </property>
-           <property name="alignment">
-            <set>Qt::AlignCenter</set>
-           </property>
-          </widget>
-         </item>
-         <item row="2" column="1">
-          <widget class="QLineEdit" name="ln_stab_int"/>
-         </item>
-         <item row="3" column="0">
-          <widget class="QLabel" name="lbl_temp_tol">
-           <property name="text">
-            <string>Temp Tolerance:</string>
-           </property>
-          </widget>
-         </item>
-         <item row="3" column="1">
-          <widget class="QLineEdit" name="ln_temp_tol"/>
-         </item>
-         <item row="4" column="0">
-          <widget class="QLabel" name="lbl_stdev_tol">
-           <property name="text">
-            <string>Variation Tolerance:</string>
-           </property>
-          </widget>
-         </item>
-         <item row="4" column="1">
-          <widget class="QLineEdit" name="ln_stdev_tol"/>
-         </item>
-         <item row="5" column="0">
-          <widget class="QLabel" name="lbl_z_stability">
-           <property name="text">
-            <string>Verify Impedance
-Stability:</string>
-           </property>
-          </widget>
-         </item>
-         <item row="5" column="1">
-          <layout class="QHBoxLayout" name="horizontalLayout_9" stretch="0,1">
-           <item>
-            <widget class="QCheckBox" name="check_z_stability">
+           <item row="0" column="0">
+            <widget class="QLabel" name="lbl_ramp">
              <property name="text">
-              <string/>
+              <string>Ramp Rate:</string>
              </property>
             </widget>
            </item>
-           <item>
-            <layout class="QFormLayout" name="formLayout_4">
-             <property name="formAlignment">
-              <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+           <item row="0" column="1">
+            <widget class="QLineEdit" name="ln_ramp"/>
+           </item>
+           <item row="1" column="0">
+            <widget class="QLabel" name="lbl_dwell">
+             <property name="text">
+              <string>Equilibration Time:</string>
              </property>
-             <item row="0" column="0">
-              <widget class="QLabel" name="lbl_z_stdev_tol">
+            </widget>
+           </item>
+           <item row="1" column="1">
+            <widget class="QLineEdit" name="ln_dwell"/>
+           </item>
+           <item row="2" column="0">
+            <widget class="QLabel" name="lbl_stability_interval">
+             <property name="toolTip">
+              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Sets the interval (in s) between measurements during the temperature stability check.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             </property>
+             <property name="text">
+              <string>Meas Interval:</string>
+             </property>
+             <property name="alignment">
+              <set>Qt::AlignCenter</set>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="1">
+            <widget class="QLineEdit" name="ln_stab_int"/>
+           </item>
+           <item row="3" column="0">
+            <widget class="QLabel" name="lbl_temp_tol">
+             <property name="text">
+              <string>Temp Tolerance:</string>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="1">
+            <widget class="QLineEdit" name="ln_temp_tol"/>
+           </item>
+           <item row="4" column="0">
+            <widget class="QLabel" name="lbl_stdev_tol">
+             <property name="text">
+              <string>Variation Tolerance:</string>
+             </property>
+            </widget>
+           </item>
+           <item row="4" column="1">
+            <widget class="QLineEdit" name="ln_stdev_tol"/>
+           </item>
+           <item row="5" column="0">
+            <widget class="QLabel" name="lbl_z_stability">
+             <property name="text">
+              <string>Verify Impedance
+Stability:</string>
+             </property>
+            </widget>
+           </item>
+           <item row="5" column="1">
+            <layout class="QHBoxLayout" name="horizontalLayout_9" stretch="0,1">
+             <item>
+              <widget class="QCheckBox" name="check_z_stability">
                <property name="text">
-                <string>Z Variation Tolerance:</string>
+                <string/>
                </property>
               </widget>
              </item>
-             <item row="0" column="1">
-              <widget class="QLineEdit" name="ln_z_stdev_tol"/>
+             <item>
+              <layout class="QFormLayout" name="formLayout_4">
+               <property name="formAlignment">
+                <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+               </property>
+               <item row="0" column="0">
+                <widget class="QLabel" name="lbl_z_stdev_tol">
+                 <property name="text">
+                  <string>Z Variation Tolerance:</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="1">
+                <widget class="QLineEdit" name="ln_z_stdev_tol"/>
+               </item>
+              </layout>
              </item>
             </layout>
            </item>
+           <item row="6" column="0">
+            <widget class="QLabel" name="lbl_return_to_rt">
+             <property name="text">
+              <string>Return to RT?</string>
+             </property>
+            </widget>
+           </item>
+           <item row="6" column="1">
+            <widget class="QCheckBox" name="check_return_to_rt">
+             <property name="text">
+              <string/>
+             </property>
+             <property name="checked">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item row="7" column="0">
+            <widget class="QLabel" name="lbl_always_stab">
+             <property name="toolTip">
+              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Check this box if you want to stabilize temperature between measurements with the same temperature setpoint.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             </property>
+             <property name="text">
+              <string>Always Stabilize?</string>
+             </property>
+            </widget>
+           </item>
+           <item row="7" column="1">
+            <widget class="QCheckBox" name="check_always_stab">
+             <property name="toolTip">
+              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Check this box if you want to stabilize temperature between measurements with the same temperature setpoint.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             </property>
+             <property name="checked">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
           </layout>
-         </item>
-         <item row="6" column="1">
-          <widget class="QCheckBox" name="check_return_to_rt">
-           <property name="text">
-            <string/>
-           </property>
-           <property name="checked">
-            <bool>true</bool>
-           </property>
-          </widget>
-         </item>
-         <item row="7" column="0">
-          <widget class="QLabel" name="lbl_always_stab">
-           <property name="toolTip">
-            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Check this box if you want to stabilize temperature between measurements with the same temperature setpoint.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-           </property>
-           <property name="text">
-            <string>Always Stabilize?</string>
-           </property>
-          </widget>
-         </item>
-         <item row="7" column="1">
-          <widget class="QCheckBox" name="check_always_stab">
-           <property name="toolTip">
-            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Check this box if you want to stabilize temperature between measurements with the same temperature setpoint.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-           </property>
-          </widget>
-         </item>
-         <item row="6" column="0">
-          <widget class="QLabel" name="lbl_return_to_rt">
-           <property name="text">
-            <string>Return to RT?</string>
-           </property>
-          </widget>
-         </item>
-        </layout>
-       </widget>
+         </widget>
+        </item>
+       </layout>
       </item>
      </layout>
     </item>
@@ -458,7 +482,7 @@ Stability:</string>
          </widget>
         </item>
         <item>
-         <spacer name="verticalSpacer">
+         <spacer name="spacer_curr_temp">
           <property name="orientation">
            <enum>Qt::Vertical</enum>
           </property>
@@ -494,7 +518,7 @@ Stability:</string>
             </widget>
            </item>
            <item>
-            <layout class="QHBoxLayout" name="horizontalLayout_10">
+            <layout class="QHBoxLayout" name="hlayout_temp_channel">
              <item>
               <widget class="QRadioButton" name="radio_chamber_tc">
                <property name="text">

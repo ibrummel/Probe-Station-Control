@@ -3,7 +3,7 @@ import serial
 
 class HotplateRobot(object):
     def __init__(self, port: str, baud: int, timeout=0.05):
-        super().__init__()
+        super(HotplateRobot, self).__init__()
         self.robot = serial.Serial(port, baud, timeout=timeout)
         self.last_move = None
 
@@ -30,6 +30,7 @@ class HotplateRobot(object):
         self.robot.write(update.encode('utf-8'))
 
     def set_setpoint(self, stpt: float):
+        # Note: This equation was determined empirically based on an excel fit of a calibration curve.
         pos = int(4.08339e-5*(stpt**2) - (2.8737e-1 * stpt) + 1.54425e2)
 
         self.update_position(pos)

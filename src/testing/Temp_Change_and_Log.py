@@ -1,5 +1,4 @@
-import sys
-from Sun_EC1X import SunEC1xChamber
+from Instrument_Interfacees.Sun_EC1X import SunEC1xChamber
 import pandas as pd
 from time import sleep, time
 from datetime import timedelta, datetime

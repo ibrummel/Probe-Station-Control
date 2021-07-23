@@ -1,11 +1,11 @@
-from datetime import date, datetime
+from datetime import datetime
 from time import sleep
 import pandas as pd
-from Robot_Class import HotplateRobot
+from Instrument_Interfaces.HotplateRobot import HotplateRobot
 
 class TempCal():
     def __init__(self, logfile: str, port='COM4', baud=115200, timeout=0.5):
-        super().__init__()
+        super(TempCal, self).__init__()
         print("Opening port to robot...")
         self.robot = HotplateRobot(port, baud, timeout=timeout)
         self.last_move = None

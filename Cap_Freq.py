@@ -1,24 +1,27 @@
-import sys
-
-from PyQt5 import uic
-from PyQt5.QtGui import QKeySequence
-from PyQt5.QtWidgets import (QWidget, QComboBox, QLineEdit, QLabel, QGroupBox, QTableWidget,
-                             QTableWidgetItem, QTabWidget, QMessageBox, QToolButton, QApplication,
-                             QFileDialog, QProgressBar, QPushButton, QShortcut)
-from PyQt5.QtCore import QTimer, QThread, pyqtSignal, QObject
 import os
+import sys
+from datetime import datetime, timedelta
 from io import StringIO
 from time import sleep
-import pandas as pd
-from datetime import datetime, timedelta
+from time import time
+
 import numpy as np
-from Live_Data_Plotter import LivePlotWidget
-from Agilent_E4980A import AgilentE4980A
+import pandas as pd
+from PyQt5.QtCore import QTimer, QThread, pyqtSignal, QObject
+from PyQt5.QtGui import QKeySequence
+from PyQt5.QtWidgets import (QTableWidgetItem, QTabWidget, QMessageBox, QApplication,
+                             QFileDialog, QPushButton, QShortcut)
+from pyvisa.errors import VisaIOError
+
+import Static_Functions as Static
+from File_Print_Headers import CAP_FREQ_HEADER, CAP_FREQ_TEMP_ADDON
 # Can be used to emulate the LCR without connection data will be garbage (random numbers)
 # from fake_E4980 import AgilentE4980A
-import Agilent_E4980A_Constants as Const
-from File_Print_Headers import *
-import Static_Functions as Static
+from Instrument_Interfaces import Agilent_E4980A_Constants as Const
+from Instrument_Interfaces.Agilent_E4980A import AgilentE4980A
+from Instrument_Interfaces.HotplateRobot import HotplateRobot
+from Instrument_Interfaces.Sun_EC1X import SunEC1xChamber
+from src.ui.cap_freq_temp_tabs import Ui_cap_freq
 
 
 class CapFreqWidget(QTabWidget):
@@ -26,12 +29,19 @@ class CapFreqWidget(QTabWidget):
     stop_measurement_worker = pyqtSignal()
     start_measuring = pyqtSignal()
 
-    def __init__(self, lcr: AgilentE4980A, measuring_thread=QThread(), ui_path='./src/ui/cap_freq_tabs.ui'):
-        super().__init__()
-        # print('Initializing Capacitance-Frequency Widget...')
-        # Define class variables and objects
+    def __init__(self, lcr: AgilentE4980A, sun: SunEC1xChamber or None, hotplate_robot: HotplateRobot,
+                 measuring_thread=QThread()):
+        super(CapFreqWidget, self).__init__()
+        # Define instruments/peripherals
         self.lcr = lcr
-        self.lcr_function = 'self.lcr.get_current_function()'  # Dummy value which is set after connection
+        self.sun = sun
+        self.hotplate_robot = hotplate_robot
+        # Dictionary of references to temperature control devices
+        self.temp_control_devices = {'Sun EC1A': self.sun, 'Hotplate Robot': self.hotplate_robot, "None": None}
+        self.current_temp_control_device = 'None'
+
+        # ToDo: Continue Here
+        self.lcr_function = None  # Dummy value which is set after connection
         self.measuring_time = 'long'
         self.range = 'auto'
         self.data_averaging = 1
@@ -41,6 +51,10 @@ class CapFreqWidget(QTabWidget):
         self.pre_meas_delay = 0.0
         self.enable_live_plots = False
         self.enable_live_vals = True
+        # Variables for storing temperature control settings
+        self.dwell = 10
+        self.ramp = 5
+        self.stab_int = 5
 
         self.num_measurements = 1
         self.tests_df = pd.DataFrame()
@@ -55,101 +69,67 @@ class CapFreqWidget(QTabWidget):
         self.lcr.dc_bias_state('on')
         self.return_to_defaults()
 
-        # Begin ui setup by importing the ui file
-        # print('Loading ui file from "{}"'.format(ui_path))
-        self.ui = uic.loadUi(ui_path, self)
-
-        # Define measurement setup tab
-        self.tab_meas_setup = self.findChild(QWidget, 'tab_meas_setup')
-
-        # Define controls for the overall measuring parameters
-        self.gbox_meas_set_params = self.findChild(QGroupBox, 'gbox_meas_set_params')
-        self.combo_function = self.findChild(QComboBox, 'combo_function')
-        self.combo_meas_time = self.findChild(QComboBox, 'combo_meas_time')
-        self.combo_range = self.findChild(QComboBox, 'combo_range')
-        self.ln_data_averaging = self.findChild(QLineEdit, 'ln_data_averaging')
-        self.ln_data_averaging.setText(str(self.data_averaging))
-        self.combo_signal_type = self.findChild(QComboBox, 'combo_signal_type')
-        self.combo_bias_type = self.findChild(QComboBox, 'combo_bias_type')
-        self.ln_num_pts = self.findChild(QLineEdit, 'ln_num_pts')
-        self.ln_num_pts.setText(str(self.num_pts))
-        self.ln_pre_meas_delay = self.findChild(QLineEdit, 'ln_step_delay')
-        self.ln_pre_meas_delay.setText(str(self.pre_meas_delay))
-        self.ln_notes = self.findChild(QLineEdit, 'ln_notes')
-        self.ln_save_file = self.findChild(QLineEdit, 'ln_save_file')
-        self.btn_save_file = self.findChild(QToolButton, 'btn_save_file')
+        # Load PyUI information and run setupUi function to build layout
+        self.ui = Ui_cap_freq()
+        self.ui.setupUi(self)
 
         # Define controls for the per measurement settings
-        self.gbox_meas_setup = self.findChild(QGroupBox, 'gbox_meas_setup')
-        self.ln_num_meas = self.findChild(QLineEdit, 'ln_num_meas')
-        self.ln_num_meas.setText(str(self.num_measurements))
-        self.btn_copy_table = self.findChild(QPushButton, 'btn_copy_table')
-        self.btn_paste_table = self.findChild(QPushButton, 'btn_paste_table')
-        self.table_meas_setup = self.findChild(QTableWidget, 'table_meas_setup')
+        # self.meas_setup_hheaders = ['Frequency Start [Hz]',
+        #                             'Frequency Stop [Hz]',
+        #                             'Oscillator [V]',
+        #                             'DC Bias [V]',
+        #                             'Equilibration Delay [s]']
+        self.meas_setup_vheaders = ['M1']
+        # FIXME: Reinitialize table headers based on what temperature control device is selected.
         self.meas_setup_hheaders = ['Frequency Start [Hz]',
                                     'Frequency Stop [Hz]',
                                     'Oscillator [V]',
                                     'DC Bias [V]',
-                                    'Equilibration Delay [s]']
-        self.meas_setup_vheaders = ['M1']
-
-        # Define running measurement tab
-        self.tab_run_meas = self.findChild(QWidget, 'tab_run_meas')
-
-        # Create labels for the current measurement data
-        self.lbl_curr_meas_start = self.findChild(QLabel, 'lbl_curr_meas_start')
-        self.lbl_curr_meas_stop = self.findChild(QLabel, 'lbl_curr_meas_stop')
-        self.lbl_curr_meas_osc = self.findChild(QLabel, 'lbl_curr_meas_osc')
-        self.lbl_curr_meas_bias = self.findChild(QLabel, 'lbl_curr_meas_bias')
-        self.progress_bar_meas = self.findChild(QProgressBar, 'progress_bar_meas')
-        self.lbl_meas_progress = self.findChild(QLabel, 'lbl_meas_progress')
-        self.lbl_meas_status = self.findChild(QLabel, 'lbl_meas_status')
-
-        # Define value readouts
-        self.gbox_val1 = self.findChild(QGroupBox, 'gbox_val1')
-        self.lbl_val1 = self.findChild(QLabel, 'lbl_val1')
-        self.gbox_val2 = self.findChild(QGroupBox, 'gbox_val2')
-        self.lbl_val2 = self.findChild(QLabel, 'lbl_val2')
-        self.gbox_curr_freq = self.findChild(QGroupBox, 'gbox_curr_freq')
-        self.lbl_curr_freq = self.findChild(QLabel, 'lbl_curr_freq')
-
-        self.live_plot = self.findChild(LivePlotWidget, 'live_plot')
+                                    'Equilibration Delay [s]',
+                                    'Temperature Set Point [°C]']
+        # This might break depending on how adding headers to a table is handled in pyqt5
+        # FIXME: Update calls to temperature UI parts in copied code.
+        # FIXME: Add greyed out gbox for temp control if no temperature control device selected
 
         self.init_measure_worker()
 
         # Gets data and emits a signal to update live value readouts
         self.lcr.get_data()
         self.live_readout_timer = QTimer()
-        self.btn_run_start_stop = self.findChild(QPushButton, 'btn_run_start_stop')
-        self.btn_setup_start_stop = self.findChild(QPushButton, 'btn_setup_start_stop')
+        self.ui.btn_run_start_stop = self.findChild(QPushButton, 'btn_run_start_stop')
+        self.ui.btn_setup_start_stop = self.findChild(QPushButton, 'btn_setup_start_stop')
 
         # Set up for allowing copy paste in the measurement table
         self.clipboard = QApplication.clipboard()
-        self.copy_sc = QShortcut(QKeySequence('Ctrl+C'), self.table_meas_setup, self.copy_table, self.copy_table)
-        self.paste_sc = QShortcut(QKeySequence('Ctrl+V'), self.table_meas_setup, self.paste_table, self.paste_table)
+        self.copy_sc = QShortcut(QKeySequence('Ctrl+C'), self.ui.table_meas_setup, self.copy_table, self.copy_table)
+        self.paste_sc = QShortcut(QKeySequence('Ctrl+V'), self.ui.table_meas_setup, self.paste_table, self.paste_table)
 
         # Initialize widget bits
         self.init_connections()
         self.init_control_setup()
-        # print('Capacitance-Frequency initialization complete')
 
     def init_connections(self):
         # Control edit connections
-        self.combo_function.currentTextChanged.connect(self.change_function)
-        self.combo_meas_time.currentTextChanged.connect(self.change_meas_aperture)
-        self.ln_data_averaging.editingFinished.connect(self.change_meas_aperture)
-        self.ln_num_pts.editingFinished.connect(self.change_num_pts)
-        self.ln_pre_meas_delay.editingFinished.connect(self.change_pre_meas_delay)
-        self.combo_range.currentTextChanged.connect(self.change_impedance_range)
-        self.combo_signal_type.currentTextChanged.connect(self.change_signal_type)
-        self.combo_bias_type.currentTextChanged.connect(self.change_bias_type)
-        self.ln_save_file.editingFinished.connect(self.set_save_file_path_by_line)
-        self.btn_save_file.clicked.connect(self.set_save_file_path_by_dialog)
-        self.ln_num_meas.editingFinished.connect(self.change_num_measurements)
-        self.btn_copy_table.clicked.connect(self.copy_table)
-        self.btn_paste_table.clicked.connect(self.paste_table)
-        self.btn_run_start_stop.clicked.connect(self.on_start_stop_clicked)
-        self.btn_setup_start_stop.clicked.connect(self.on_start_stop_clicked)
+        self.ui.combo_function.currentTextChanged.connect(self.change_function)
+        self.ui.combo_meas_time.currentTextChanged.connect(self.change_meas_aperture)
+        self.ui.ln_data_averaging.editingFinished.connect(self.change_meas_aperture)
+        self.ui.ln_num_pts.editingFinished.connect(self.change_num_pts)
+        self.ui.ln_pre_meas_delay.editingFinished.connect(self.change_pre_meas_delay)
+        self.ui.combo_range.currentTextChanged.connect(self.change_impedance_range)
+        self.ui.combo_signal_type.currentTextChanged.connect(self.change_signal_type)
+        self.ui.combo_bias_type.currentTextChanged.connect(self.change_bias_type)
+        self.ui.ln_save_file.editingFinished.connect(self.set_save_file_path_by_line)
+        self.ui.btn_save_file.clicked.connect(self.set_save_file_path_by_dialog)
+        self.ui.ln_num_meas.editingFinished.connect(self.change_num_measurements)
+        self.ui.btn_copy_table.clicked.connect(self.copy_table)
+        self.ui.btn_paste_table.clicked.connect(self.paste_table)
+        self.ui.btn_run_start_stop.clicked.connect(self.on_start_stop_clicked)
+        self.ui.btn_setup_start_stop.clicked.connect(self.on_start_stop_clicked)
+        # Add connections for temperature controls
+        self.ui.combo_temp_control.currentTextChanged(self.change_temperature_control_device)
+        self.ui.ln_dwell.editingFinished.connect(self.change_dwell)
+        self.ui.ln_ramp.editingFinished.connect(self.change_ramp)
+        self.ui.ln_stab_int.editingFinished.connect(self.change_stab_int)
 
         # Timers
         self.live_readout_timer.timeout.connect(self.get_new_data)
@@ -167,37 +147,55 @@ class CapFreqWidget(QTabWidget):
         self.measuring_worker.meas_status_update.connect(self.update_meas_status)
 
     def init_measure_worker(self):
+        # DONE: Consolidate measure workers into one object
         self.measuring_worker = CapFreqMeasureWorkerObject(self)
         self.measuring_worker.moveToThread(self.measuring_thread)
-        # self.lcr.moveToThread(self.measuring_thread)
+        self.move_instr_to_worker_thread()
 
     def init_control_setup(self):
         self.init_setup_table()
 
         # Set up comboboxes
-        self.combo_range.addItems(Const.VALID_IMP_RANGES)
-        self.combo_function.addItems(list(Const.FUNC_DICT.keys()))
-        self.combo_meas_time.addItems(list(Const.MEASURE_TIME_DICT.keys()))
-        self.combo_signal_type.addItems(['Voltage', 'Current'])
-        self.combo_bias_type.addItems(['Voltage', 'Current'])
+        self.ui.combo_range.addItems(Const.VALID_IMP_RANGES)
+        self.ui.combo_function.addItems(list(Const.FUNC_DICT.keys()))
+        self.ui.combo_meas_time.addItems(list(Const.MEASURE_TIME_DICT.keys()))
+        self.ui.combo_signal_type.addItems(['Voltage', 'Current'])
+        self.ui.combo_bias_type.addItems(['Voltage', 'Current'])
+
+        # Add available temperature control devices to the drop down
+        # FIXME: 2 Add checking that each device is online and adjust this list accordingly.
+        # FIXME: 2 Add a way to reconnect to devices while GUI is running
+        self.ui.combo_temp_control.addItems(list(self.temp_control_devices.keys()))
+        self.ui.combo_temp_control.setCurrentText(self.current_temp_control_device)
+        # Set the initial values for dwell, ramprate, and stability interval
+        self.change_dwell()
+        self.change_ramp()
+        self.change_stab_int()
 
         # Set up timers
         self.live_readout_timer.start(500)
 
     def init_setup_table(self):
         # Set up initial table headers and size
-        self.table_meas_setup.setRowCount(1)
-        self.table_meas_setup.setColumnCount(5)
-        self.table_meas_setup.setHorizontalHeaderLabels(self.meas_setup_hheaders)
-        self.table_meas_setup.setVerticalHeaderLabels(self.meas_setup_vheaders)
-        self.table_meas_setup.setWordWrap(True)
-        self.table_meas_setup.resizeColumnsToContents()
+        self.ui.table_meas_setup.setRowCount(1)
+        self.ui.table_meas_setup.setColumnCount(5)
+        self.ui.table_meas_setup.setHorizontalHeaderLabels(self.meas_setup_hheaders)
+        self.ui.table_meas_setup.setVerticalHeaderLabels(self.meas_setup_vheaders)
+        self.ui.table_meas_setup.setWordWrap(True)
+        self.ui.table_meas_setup.resizeColumnsToContents()
         self.add_table_items()
-        self.table_meas_setup.item(0, 0).setText('20')
-        self.table_meas_setup.item(0, 1).setText('2000000')
-        self.table_meas_setup.item(0, 2).setText('0.05')
-        self.table_meas_setup.item(0, 3).setText('0')
-        self.table_meas_setup.item(0, 4).setText('0')
+        self.ui.table_meas_setup.item(0, 0).setText('20')
+        self.ui.table_meas_setup.item(0, 1).setText('2000000')
+        self.ui.table_meas_setup.item(0, 2).setText('0.2')
+        self.ui.table_meas_setup.item(0, 3).setText('0')
+        self.ui.table_meas_setup.item(0, 4).setText('0')
+
+        # DONE: Reinitialize table headers based on what temperature control device is selected.
+        if self.temp_control_devices is not "None":
+            self.table_meas_setup.setColumnCount(6)
+            self.table_meas_setup.setHorizontalHeaderLabels(self.meas_setup_hheaders)
+            self.add_table_items()
+            self.table_meas_setup.item(0, 5).setText('25')
 
     def get_new_data(self):
         # Helper function to get new data on timer timeout. Was failing when called directly, could be something about
@@ -206,39 +204,83 @@ class CapFreqWidget(QTabWidget):
             self.lcr.get_data()
 
     def change_function(self):
-        self.lcr_function = self.combo_function.currentText()
+        self.lcr_function = self.ui.combo_function.currentText()
         self.update_val_labels()
 
     def change_meas_aperture(self):
-        self.measuring_time = self.combo_meas_time.currentText()
+        self.measuring_time = self.ui.combo_meas_time.currentText()
         try:
-            self.data_averaging = int(self.ln_data_averaging.text())
+            self.data_averaging = int(self.ui.ln_data_averaging.text())
         except ValueError:
             self.data_averaging = 1
-            self.ln_data_averaging.setText(str(self.data_averaging))
+            self.ui.ln_data_averaging.setText(str(self.data_averaging))
 
     def change_num_pts(self):
         try:
-            self.num_pts = int(self.ln_num_pts.text())
+            self.num_pts = int(self.ui.ln_num_pts.text())
         except ValueError:
             self.num_pts = 50
-            self.ln_num_pts.setText(str(self.num_pts))
+            self.ui.ln_num_pts.setText(str(self.num_pts))
 
     def change_pre_meas_delay(self):
         try:
-            self.pre_meas_delay = float(self.ln_pre_meas_delay.text())
+            self.pre_meas_delay = float(self.ui.ln_pre_meas_delay.text())
         except ValueError:
             self.pre_meas_delay = 0.0
-        self.ln_pre_meas_delay.setText(str(self.pre_meas_delay))
+        self.ui.ln_pre_meas_delay.setText(str(self.pre_meas_delay))
 
     def change_impedance_range(self):
-        self.range = self.combo_range.currentText()
+        self.range = self.ui.combo_range.currentText()
 
     def change_signal_type(self):
-        self.signal_type = self.combo_signal_type.currentText()
+        self.signal_type = self.ui.combo_signal_type.currentText()
 
     def change_bias_type(self):
-        self.bias_type = self.combo_bias_type.currentText()
+        self.bias_type = self.ui.combo_bias_type.currentText()
+
+    def change_temp_control_device(self, current_text: str):
+        self.current_temp_control_device = current_text
+        self.init_setup_table()
+        if current_text is "None":
+            self.ui.gbox_thermal_settings.setDisabled(True)
+            # FIXME: Does the spacer make layouts weird?
+            self.ui.gbox_curr_temp.hide()
+            self.ui.lbl_pipe4.hide()
+            self.ui.lbl_temp.hide()
+            self.ui.lbl_curr_meas_temp.hide()
+            # self.meas_setup_hheaders = ['Frequency Start [Hz]',
+            #                             'Frequency Stop [Hz]',
+            #                             'Oscillator [V]',
+            #                             'DC Bias [V]',
+            #                             'Equilibration Delay [s]',]
+        # DONE: 2 Make only relevant settings available based on temperature control device selection.
+        else:
+            self.ui.gbox_thermal_settings.setDisabled(False)
+            self.ui.gbox_curr_temp.show()
+            self.ui.lbl_pipe4.show()
+            self.ui.lbl_temp.show()
+            self.ui.lbl_curr_meas_temp.show()
+            # self.meas_setup_hheaders = ['Frequency Start [Hz]',
+            #                             'Frequency Stop [Hz]',
+            #                             'Oscillator [V]',
+            #                             'DC Bias [V]',
+            #                             'Equilibration Delay [s]',
+            #                             'Temperature Set Point [°C]']
+            if self.current_temp_control_device == 'Sun EC1A':
+                self.ui.hlayout_temp_channel.show()
+                self.ui.lbl_ramp.setText("Ramp Rate:")
+            elif self.current_temp_control_device == 'Hotplate Robot':
+                self.ui.hlayout_temp_channel.hide()
+                self.ui.lbl_ramp.setText("Ramp Time:")
+
+    def change_dwell(self):
+        self.dwell = float(self.ui.ln_dwell.text())
+
+    def change_ramp(self):
+        self.ramp = float(self.ui.ln_ramp.text())
+
+    def change_stab_int(self):
+        self.stab_int = float(self.ui.ln_stab_int.text())
 
     def set_save_file_path_by_dialog(self):
         file_name = QFileDialog.getSaveFileName(self,
@@ -258,57 +300,66 @@ class CapFreqWidget(QTabWidget):
                 if permission_denied == QMessageBox.Ok:
                     self.set_save_file_path_by_dialog()
 
-        self.ln_save_file.setText(self.save_file_path)
+        self.ui.ln_save_file.setText(self.save_file_path)
 
     def set_save_file_path_by_line(self):
-        if self.ln_save_file.text() != '':
-            self.save_file_path = self.ln_save_file.text()
+        if self.ui.ln_save_file.text() != '':
+            self.save_file_path = self.ui.ln_save_file.text()
 
     def change_num_measurements(self):
         num = self.num_measurements
         try:
-            self.num_measurements = int(self.ln_num_meas.text())
+            self.num_measurements = int(self.ui.ln_num_meas.text())
         except ValueError:
             self.num_measurements = num
 
-        self.table_meas_setup.setRowCount(self.num_measurements)
+        self.ui.table_meas_setup.setRowCount(self.num_measurements)
         self.update_table_vheaders()
         self.add_table_items()
 
     def update_live_readout(self, data: list):
-        self.lbl_curr_freq.setText(str(Static.si_prefix(data[0], 'Hz', 4)))
-        self.lbl_val1.setText(str(Static.to_sigfigs(data[1], 6)))
-        self.lbl_val2.setText(str(Static.to_sigfigs(data[2], 6)))
+        self.ui.lbl_curr_freq.setText(str(Static.si_prefix(data[0], 'Hz', 4)))
+        self.ui.lbl_val1.setText(str(Static.to_sigfigs(data[1], 6)))
+        self.ui.lbl_val2.setText(str(Static.to_sigfigs(data[2], 6)))
+
+        if self.enable_live_vals:
+            try:
+                if self.ui.radio_chamber_tc.isChecked():
+                    self.ui.lbl_curr_temp.setText(str(self.sun.get_temp()))
+                elif self.ui.radio_user_tc.isChecked():
+                    self.ui.lbl_curr_temp.setText(str(self.sun.get_user_temp()))
+            except VisaIOError:
+                print('Error on getting temperature from sun chamber')
 
     def update_table_hheaders(self):
-        self.table_meas_setup.setHorizontalHeaderLabels(self.meas_setup_hheaders)
+        self.ui.table_meas_setup.setHorizontalHeaderLabels(self.meas_setup_hheaders)
 
     def update_table_vheaders(self):
         self.meas_setup_vheaders = ['M{}'.format(x) for x in range(1, self.num_measurements + 1)]
-        self.table_meas_setup.setVerticalHeaderLabels(self.meas_setup_vheaders)
+        self.ui.table_meas_setup.setVerticalHeaderLabels(self.meas_setup_vheaders)
 
     def add_table_items(self):
-        for irow in range(0, self.table_meas_setup.rowCount()):
-            for icol in range(0, self.table_meas_setup.columnCount()):
-                widget = self.table_meas_setup.item(irow, icol)
+        for irow in range(0, self.ui.table_meas_setup.rowCount()):
+            for icol in range(0, self.ui.table_meas_setup.columnCount()):
+                widget = self.ui.table_meas_setup.item(irow, icol)
                 # If the cell doesn't already have a QTableWidgetItem
                 if widget is None:
                     # Create a new QTableWidgetItem in the cell
                     new_widget = QTableWidgetItem()
                     if irow > 0:
                         # Get the value of the cell above
-                        value = self.table_meas_setup.item(irow - 1, icol).text()
+                        value = self.ui.table_meas_setup.item(irow - 1, icol).text()
                         new_widget.setText(value)
                     # Put the new widget in the table
-                    self.table_meas_setup.setItem(irow, icol, new_widget)
+                    self.ui.table_meas_setup.setItem(irow, icol, new_widget)
 
     def copy_table(self):
         tmprow = ''
         copystr = ''
 
-        for irow in range(0, self.table_meas_setup.rowCount()):
-            for icol in range(0, self.table_meas_setup.columnCount()):
-                tmprow = tmprow + self.table_meas_setup.item(irow, icol).text() + '\t'
+        for irow in range(0, self.ui.table_meas_setup.rowCount()):
+            for icol in range(0, self.ui.table_meas_setup.columnCount()):
+                tmprow = tmprow + self.ui.table_meas_setup.item(irow, icol).text() + '\t'
 
             copystr = copystr + tmprow.rstrip('\t') + '\n'
             tmprow = ''
@@ -319,13 +370,13 @@ class CapFreqWidget(QTabWidget):
         rows = self.clipboard.text().split('\n')[:-1]
 
         self.num_measurements = len(rows)
-        self.ln_num_meas.setText(str(len(rows)))
+        self.ui.ln_num_meas.setText(str(len(rows)))
         self.change_num_measurements()
 
         for (irow, row_val) in enumerate(rows):
             tmpcols = row_val.split('\t')
             for (icol, col_val) in enumerate(tmpcols):
-                self.table_meas_setup.item(irow, icol).setText(str(col_val))
+                self.ui.table_meas_setup.item(irow, icol).setText(str(col_val))
 
     def generate_header(self, index, row):
         header_vars = self.get_header_vars(index, row)
@@ -347,6 +398,37 @@ class CapFreqWidget(QTabWidget):
                                         pre_meas_delay=self.pre_meas_delay,
                                         notes='Notes:\t{}'.format(header_vars['notes']))
 
+        # DONE: Handle cases where there is no temp control device and don't temp data to
+        #  headers
+        if self.current_temp_control_device != 'None':
+            if self.measuring_worker.step_temp == self.measuring_worker.prev_step_temp and not self.ui.check_always_stab.isChecked():
+                user_avg = str(Static.to_sigfigs(self.measuring_worker.user_avg, 5)) + '*'
+                user_stdev = str(Static.to_sigfigs(self.measuring_worker.user_stdev, 5)) + '*'
+                chamber_avg = str(Static.to_sigfigs(self.measuring_worker.chamber_avg, 5)) + '*'
+                chamber_stdev = str(Static.to_sigfigs(self.measuring_worker.chamber_stdev, 5)) + '*'
+                z_stdev = str(Static.to_sigfigs(self.measuring_worker.z_stdev, 5)) + '*'
+            else:
+                user_avg = str(Static.to_sigfigs(self.measuring_worker.user_avg, 5))
+                user_stdev = str(Static.to_sigfigs(self.measuring_worker.user_stdev, 5))
+                chamber_avg = str(Static.to_sigfigs(self.measuring_worker.chamber_avg, 5))
+                chamber_stdev = str(Static.to_sigfigs(self.measuring_worker.chamber_stdev, 5))
+                z_stdev = str(Static.to_sigfigs(self.measuring_worker.z_stdev, 5))
+
+            # Replace the separator for the sample notes with the thermal information + the separator for
+            #  sample notes.
+            header = header.replace('\n***********Sample Notes***********',
+                                    CAP_FREQ_TEMP_ADDON.format(temp_device=header_vars['temp_device'],
+                                                               ramp=header_vars['ramp'],
+                                                               dwell=header_vars['dwell'],
+                                                               stab_int=header_vars['stab_int'],
+                                                               user_avg=user_avg,
+                                                               user_stdev=user_stdev,
+                                                               chamber_avg=chamber_avg,
+                                                               chamber_stdev=chamber_stdev,
+                                                               z_stdev=z_stdev, ))
+            if self.current_temp_control_device == 'Hotplate Robot':
+                header.replace('\nRamp Rate:\t', '\nRamp Time:\t')
+
         return header
 
     def get_header_vars(self, index, row):
@@ -360,43 +442,53 @@ class CapFreqWidget(QTabWidget):
         header_vars['stop'] = row[self.meas_setup_hheaders[1]]
 
         header_vars['osc'] = row[self.meas_setup_hheaders[2]]
-        if self.combo_signal_type.currentText() == 'Voltage':
+        if self.ui.combo_signal_type.currentText() == 'Voltage':
             header_vars['osc_type'] = 'V'
-        elif self.combo_signal_type.currentText() == 'Current':
+        elif self.ui.combo_signal_type.currentText() == 'Current':
             header_vars['osc_type'] = 'A'
         else:
             header_vars['osc_type'] = 'UNKNOWN'
 
         header_vars['bias'] = row[self.meas_setup_hheaders[3]]
-        if self.combo_bias_type.currentText() == 'Voltage':
+        if self.ui.combo_bias_type.currentText() == 'Voltage':
             header_vars['bias_type'] = 'V'
-        elif self.combo_bias_type.currentText() == 'Current':
+        elif self.ui.combo_bias_type.currentText() == 'Current':
             header_vars['bias_type'] = 'A'
         else:
             header_vars['bias_type'] = 'UNKNOWN'
 
         header_vars['step_delay'] = row[self.meas_setup_hheaders[4]]
-        header_vars['notes'] = self.ln_notes.text()
+        header_vars['notes'] = self.ui.ln_notes.text()
+
+        # DONE: Handle cases where there is no temp control device and don't temp data to
+        #  headers
+        if self.current_temp_control_device != 'None':
+            header_vars['temp_device'] = self.current_temp_control_device
+            header_vars['ramp'] = self.ramp
+            header_vars['dwell'] = self.dwell
+            header_vars['stab_int'] = self.stab_int
 
         return header_vars
 
     def generate_test_matrix(self):
         self.tests_df = pd.DataFrame(data=None, index=self.meas_setup_vheaders, columns=self.meas_setup_hheaders)
 
-        for irow in range(0, self.table_meas_setup.rowCount()):
-            for icol in range(0, self.table_meas_setup.columnCount()):
-                self.tests_df.iloc[irow, icol] = self.table_meas_setup.item(irow, icol).text()
+        for irow in range(0, self.ui.table_meas_setup.rowCount()):
+            for icol in range(0, self.ui.table_meas_setup.columnCount()):
+                self.tests_df.iloc[irow, icol] = self.ui.table_meas_setup.item(irow, icol).text()
 
     def enable_controls(self, enable: bool):
-        self.gbox_meas_setup.setEnabled(enable)
-        self.gbox_meas_set_params.setEnabled(enable)
+        self.ui.gbox_meas_setup.setEnabled(enable)
+        self.ui.gbox_meas_set_params.setEnabled(enable)
+        # FIXME: Does this need to be context dependent? Maybe only for enable.
+        self.ui.gbox_thermal_settings.setEnabled(enable)
 
     def setup_lcr(self):
         self.lcr.function(self.lcr_function)
         self.lcr.impedance_range(self.range)
         self.lcr.measurement_aperture(self.measuring_time, self.data_averaging)
-        self.lcr.signal_level(self.signal_type, self.table_meas_setup.item(0, 2).text())
-        self.lcr.dc_bias_level(self.bias_type, self.table_meas_setup.item(0, 3).text())
+        self.lcr.signal_level(self.signal_type, self.ui.table_meas_setup.item(0, 2).text())
+        self.lcr.dc_bias_level(self.bias_type, self.ui.table_meas_setup.item(0, 3).text())
 
     def on_start_stop_clicked(self):
         # Get the sender
@@ -404,30 +496,31 @@ class CapFreqWidget(QTabWidget):
         # If the sender is checked (trying to start the measurement)
         if btn.isChecked():
             # Set both buttons to checked
-            self.btn_setup_start_stop.setChecked(True)
-            self.btn_run_start_stop.setChecked(True)
+            self.ui.btn_setup_start_stop.setChecked(True)
+            self.ui.btn_run_start_stop.setChecked(True)
             # Pause the update timer
             self.enable_live_vals = False
             # Set the text on both buttons
-            self.btn_setup_start_stop.setText('Stop Measurements')
-            self.btn_run_start_stop.setText('Stop Measurements')
+            self.ui.btn_setup_start_stop.setText('Stop Measurements')
+            self.ui.btn_run_start_stop.setText('Stop Measurements')
             # Start the measurement
             self.start_measurement()
         # If the sender is not checked (User has cancelled measurement)po0909o0poi9o
         elif not btn.isChecked():
             # Set both buttons to unchecked
-            self.btn_setup_start_stop.setChecked(False)
-            self.btn_run_start_stop.setChecked(False)
+            self.ui.btn_setup_start_stop.setChecked(False)
+            self.ui.btn_run_start_stop.setChecked(False)
             # Enable the update timer
             self.enable_live_vals = True
             # Set the text on both buttons
-            self.btn_setup_start_stop.setText('Run Measurement Set')
-            self.btn_run_start_stop.setText('Run Measurement Set')
+            self.ui.btn_setup_start_stop.setText('Run Measurement Set')
+            self.ui.btn_run_start_stop.setText('Run Measurement Set')
             # Start the measurement
             self.halt_measurement()
 
     def move_instr_to_worker_thread(self):
         self.lcr.moveToThread(self.measuring_thread)
+        self.sun.moveToThread(self.measuring_thread)
 
     def halt_measurement(self):
         self.stop_measurement_worker.emit()
@@ -439,17 +532,17 @@ class CapFreqWidget(QTabWidget):
         self.set_save_file_path_by_line()
         self.check_file_path()
 
-        self.setCurrentWidget(self.tab_run_meas)
+        self.setCurrentWidget(self.ui.tab_run_meas)
         # Set up the progress bar for this measurement
-        self.progress_bar_meas.setMinimum(0)
-        self.progress_bar_meas.setMaximum(self.num_measurements * self.num_pts)
-        self.progress_bar_meas.reset()
+        self.ui.progress_bar_meas.setMinimum(0)
+        self.ui.progress_bar_meas.setMaximum(self.num_measurements * self.num_pts)
+        self.ui.progress_bar_meas.reset()
         # Keep the user from changing values in the controls
         self.enable_controls(False)
         # Set live vals to update to last read value only
         self.enable_live_vals = False
         # Enable live plotting of values, clear previous data
-        self.live_plot.clear_data()
+        self.ui.live_plot.clear_data()
         self.enable_live_plots = True
 
         self.move_instr_to_worker_thread()
@@ -461,8 +554,8 @@ class CapFreqWidget(QTabWidget):
                                          'Measurement cancelled by user.',
                                          QMessageBox.Ok, QMessageBox.Ok)
         if cancel == QMessageBox.Ok:
-            self.btn_setup_start_stop.setChecked(False)
-            self.btn_run_start_stop.setChecked(False)
+            self.ui.btn_setup_start_stop.setChecked(False)
+            self.ui.btn_run_start_stop.setChecked(False)
             self.halt_measurement()
             return
 
@@ -505,11 +598,11 @@ class CapFreqWidget(QTabWidget):
         # print('Measurement finished')
         # Change start/stop button back to start
         # Set both buttons to unchecked
-        self.btn_setup_start_stop.setChecked(False)
-        self.btn_run_start_stop.setChecked(False)
+        self.ui.btn_setup_start_stop.setChecked(False)
+        self.ui.btn_run_start_stop.setChecked(False)
         # Set the text on both buttons
-        self.btn_setup_start_stop.setText('Start Measurements')
-        self.btn_run_start_stop.setText('Start Measurements')
+        self.ui.btn_setup_start_stop.setText('Start Measurements')
+        self.ui.btn_run_start_stop.setText('Start Measurements')
 
     def return_to_defaults(self):
         # print('Returning lcr to defaults')
@@ -534,9 +627,9 @@ class CapFreqWidget(QTabWidget):
             if self.lcr_function == 'Z-Thd':
                 zreal = data[1] * np.cos(np.deg2rad(data[2]))
                 zimag = data[1] * np.sin(np.deg2rad(data[2]))
-                self.live_plot.add_data([zreal, -1 * zimag])
+                self.ui.live_plot.add_data([zreal, -1 * zimag])
             else:
-                self.live_plot.add_data([data[0], data[1], data[2]])
+                self.ui.live_plot.add_data([data[0], data[1], data[2]])
 
     def update_val_labels(self):
         # Get the two parameters that are being measured/output
@@ -544,23 +637,23 @@ class CapFreqWidget(QTabWidget):
 
         # Handle special cases for the live plot
         if self.lcr_function == 'Z-Thd':
-            self.live_plot.canvas.set_dual_y(False, ["Z' (Ohm)", "-Z'' (Ohm)"])
+            self.ui.live_plot.canvas.set_dual_y(False, ["Z' (Ohm)", "-Z'' (Ohm)"])
         else:
-            self.live_plot.canvas.set_dual_y(True, ['Frequency [Hz]', val_params[0], val_params[1]])
+            self.ui.live_plot.canvas.set_dual_y(True, ['Frequency [Hz]', val_params[0], val_params[1]])
 
         # Set the live value readout names regardless
-        self.gbox_val1.setTitle(val_params[0])
-        self.gbox_val2.setTitle(val_params[1])
+        self.ui.gbox_val1.setTitle(val_params[0])
+        self.ui.gbox_val2.setTitle(val_params[1])
 
     def update_measurement_progress(self, indices: list):
         # NOTE: indices[0] will be the measurement number (one indexed), and
         # indices[1] will be the step number (Zero indexed)
-        self.progress_bar_meas.setValue(((indices[0] - 1) * self.num_pts) + (indices[1] + 1))
-        self.lbl_meas_progress.setText('Measurement {}/{},\nStep {}/{}'.format(indices[0], self.num_measurements,
-                                                                               indices[1] + 1, self.num_pts))
+        self.ui.progress_bar_meas.setValue(((indices[0] - 1) * self.num_pts) + (indices[1] + 1))
+        self.ui.lbl_meas_progress.setText('Measurement {}/{},\nStep {}/{}'.format(indices[0], self.num_measurements,
+                                                                                  indices[1] + 1, self.num_pts))
 
     def update_meas_status(self, update_str: str):
-        self.lbl_meas_status.setText(update_str)
+        self.ui.lbl_meas_status.setText(update_str)
 
 
 class CapFreqMeasureWorkerObject(QObject):
@@ -569,7 +662,7 @@ class CapFreqMeasureWorkerObject(QObject):
     meas_status_update = pyqtSignal(str)
 
     def __init__(self, parent: CapFreqWidget):
-        super().__init__()
+        super(CapFreqMeasureWorkerObject, self).__init__()
         self.parent = parent
         self.stop = False
         self.data_df = pd.DataFrame()
@@ -583,14 +676,27 @@ class CapFreqMeasureWorkerObject(QObject):
         self.step_bias = 0
         self.step_delay = 0
 
+        # Define temperature control variables
+        self.step_temp = None
+        self.user_avg = 0
+        self.chamber_avg = 0
+        self.user_stdev = 0
+        self.chamber_stdev = 0
+        self.z_stdev = 0
+        self.prev_step_temp = None
+
     def stop_early(self):
         self.stop = True
 
     def set_current_meas_labels(self):
-        self.parent.lbl_curr_meas_start.setText(str(self.step_start))
-        self.parent.lbl_curr_meas_stop.setText(str(self.step_stop))
-        self.parent.lbl_curr_meas_osc.setText(str(self.step_osc))
-        self.parent.lbl_curr_meas_bias.setText(str(self.step_bias))
+        self.parent.ui.lbl_curr_meas_start.setText(str(self.step_start))
+        self.parent.ui.lbl_curr_meas_stop.setText(str(self.step_stop))
+        self.parent.ui.lbl_curr_meas_osc.setText(str(self.step_osc))
+        self.parent.ui.lbl_curr_meas_bias.setText(str(self.step_bias))
+
+        # FIXME: only if temperature control device is not None --> Actually will be hidden so we don't care as long
+        #  as it doesn't crash
+        self.parent.ui.lbl_curr_meas_temp.setText(str(self.step_temp))
 
     def set_test_params(self, row):
         # Set up current test specific values
@@ -600,8 +706,13 @@ class CapFreqMeasureWorkerObject(QObject):
         self.step_bias = row[self.parent.meas_setup_hheaders[3]]
         self.step_delay = float(row[self.parent.meas_setup_hheaders[4]])
 
+        # DONE: only if temperature control device is not None
+        if self.parent.current_temp_control_device != "None":
+            self.prev_step_temp = self.step_temp
+            self.step_temp = float(row[self.parent.meas_setup_hheaders[5]])
+
     def get_out_columns(self):
-        columns = Const.PARAMETERS_BY_FUNC[Const.FUNC_DICT[self.parent.combo_function.currentText()]]
+        columns = Const.PARAMETERS_BY_FUNC[Const.FUNC_DICT[self.parent.ui.combo_function.currentText()]]
         if columns[0] != 'Frequency [Hz]':
             columns.insert(0, 'Frequency [Hz]')
 
@@ -616,7 +727,132 @@ class CapFreqMeasureWorkerObject(QObject):
         self.data_df = self.data_df.append(data, ignore_index=True)
 
     def blocking_func(self):
-        pass
+        # DONE: Behavior based on selected temperature control device.
+        if self.parent.current_temp_control_device is "None":
+            pass
+        else:
+            # Define variables to hold logged temperatures
+            user_T = []
+            chamber_T = []
+            z = []
+
+            # Pull limit values from GUI
+            temp_tol = float(self.parent.ui.ln_temp_tol.text())
+            stdev_tol = float(self.parent.ui.ln_stdev_tol.text())
+            z_stdev_tol = float(self.parent.ui.ln_z_stdev_tol.text())
+
+            if self.step_temp != self.prev_step_temp:
+                # Send the command to change the temperature
+                if self.parent.current_temp_control_device == 'Sun EC1A':
+                    self.parent.sun.set_setpoint(self.step_temp)
+                    device = 'chamber'
+                elif self.parent.current_temp_control_device == 'Hotplate Robot':
+                    self.parent.hotplate_robot.set_setpoint(self.step_temp)
+                    device = 'hotplate'
+                self.meas_status_update.emit("Waiting for {} to reach {}...".format(device, self.step_temp))
+
+                if self.parent.current_temp_control_device == 'Sun EC1A':
+                    # Get the current temperature and loop until setpoint is achieved
+                    check_temp = float(self.parent.sun.get_temp())
+                    if self.step_temp > check_temp:
+                        while check_temp < self.step_temp - float(self.parent.ui.ln_temp_tol.text()):
+                            check_temp = float(self.parent.sun.get_temp())
+                            self.parent.ui.lbl_curr_temp.setText(str(check_temp))
+                            sleep(1)
+                            if self.stop:
+                                break
+                    elif self.step_temp < check_temp:
+                        while check_temp > self.step_temp + float(self.parent.ui.ln_temp_tol.text()):
+                            check_temp = float(self.parent.sun.get_temp())
+                            self.parent.ui.lbl_curr_temp.setText(str(check_temp))
+                            sleep(1)
+                            if self.stop:
+                                break
+                elif self.parent.current_temp_control_device == 'Hotplate Robot':
+                    # Use a running average of last 60 seconds to determine if heating has finished + temperature
+                    #  is stabilizing.
+                    count = 0
+                    while True:
+                        chamber_T = chamber_T[-60:]
+                        chamber_T.append(float(self.parent.hotplate_robot.get_temp()))
+                        self.parent.ui.lbl_curr_temp.setText(chamber_T[-1])
+                        count += 1
+                        sleep(1)
+                        if len(chamber_T) > 5 and np.std(chamber_T) > stdev_tol and count >= int(self.parent.ui.ln_ramp.text()) * 60:
+                            chamber_T = []
+                            break
+                        if self.stop:
+                            break
+
+            if self.step_temp != self.prev_step_temp or self.parent.ui.check_always_stab.isChecked():
+                # After reaching setpoint, check stability
+                self.meas_status_update.emit('Beginning temperature stability check at {temp}...'
+                                             .format(temp=self.step_temp))
+                self.parent.enable_live_plots = False
+
+                # Blocking loop for temperature equilibration
+                count = 0
+                start_time = time()
+                for i in range(0, int(self.parent.dwell * 60)):
+                    if count % self.parent.stab_int == 0:
+                        if self.parent.current_temp_control_device == 'Sun EC1A':
+                            user_T.append(self.parent.sun.get_user_temp())
+                            sleep(0.05)
+                            chamber_T.append(self.parent.sun.get_temp())
+                        elif self.parent.current_temp_control_device == 'Hotplate Robot':
+                            chamber_T.append(self.parent.hotplate_robot.get_temp())
+                            sleep(0.05)
+                        z.append(self.parent.lcr.get_data()[1])
+                        if self.parent.ui.radio_chamber_tc.isChecked() or self.parent.current_temp_control_device == 'Hotplate Robot':
+                            self.parent.ui.lbl_curr_temp.setText(str(chamber_T[-1]))
+                        elif self.parent.ui.radio_user_tc.isChecked():
+                            self.parent.ui.lbl_curr_temp.setText(str(user_T[-1]))
+                    count += 1
+                    time_left = str(timedelta(seconds=int(self.parent.dwell * 60) - i))
+                    self.meas_status_update.emit("Checking stability at {temp}. Time Remaining: {time}"
+                                                 .format(temp=self.step_temp,
+                                                         time=time_left))
+                    sleep(0.93)
+                    if self.stop:
+                        break
+                if self.stop:
+                    return
+
+                self.parent.enable_live_plots = True
+                self.meas_status_update.emit('Temperature stability check was scheduled for '
+                                             '{} s, and took {} s.'.format(self.parent.dwell * 60,
+                                                                           time() - start_time))
+
+                # Calculate temperature statistics
+                self.user_avg = np.mean(user_T)
+                self.user_stdev = np.std(user_T)
+                self.chamber_avg = np.mean(chamber_T)
+                self.chamber_stdev = np.std(chamber_T)
+                self.z_stdev = np.std(z)
+
+                # Check that statistics are within user specification. Re-run equilibration if so.
+                in_spec = True
+                if self.parent.current_temp_control_device == 'Sun EC1A' and abs(
+                        self.chamber_avg - self.step_temp) > temp_tol:
+                    self.meas_status_update.emit(
+                        'Temperature too far from setpoint ({delta} vs {deltol}) outside of tolerance.'.format(
+                            delta=abs(self.chamber_avg - self.step_temp), deltol=temp_tol))
+                    in_spec = False
+                elif self.chamber_stdev > stdev_tol:
+                    self.meas_status_update.emit(
+                        'Temperature unstable. Standard deviation ({stdev} vs {stdevtol}) outside of tolerance.'.format(
+                            stdev=self.chamber_stdev, stdevtol=stdev_tol))
+                    in_spec = False
+                if self.parent.ui.check_z_stability.isChecked():
+                    if self.z_stdev > z_stdev_tol:
+                        self.meas_status_update.emit('Impedance variation outside of tolerance: '
+                                                     'Tolerance={tol}, Measured Stdev={stdev}'.format(tol=z_stdev_tol,
+                                                                                                      stdev=self.z_stdev))
+                        in_spec = False
+
+                if not in_spec:
+                    sleep(2)
+                    return self.blocking_func()
 
     def condition_equilibration_delay(self):
         count = 0
@@ -628,10 +864,26 @@ class CapFreqMeasureWorkerObject(QObject):
             count += 1
 
     def return_instr_to_main_thread(self):
+        # FIXME: This shit shouldn't be necessary
         self.lcr.moveToThread(QApplication.instance().thread())
+        # self.sun.moveToThread(QApplication.instance().thread())
 
     def measurement_cleanup(self):
-        self.meas_status_update.emit('Measurement finished.')
+        # DONE: Check for temperature control context
+        if self.parent.current_temp_control_device == 'None':
+            self.meas_status_update.emit('Measurement Finished.')
+        else:
+            if self.parent.ui.check_return_to_rt.isChecked():
+                if self.parent.current_temp_control_device == 'Sun EC1A':
+                    self.parent.sun.set_setpoint(25.0)
+                elif self.parent.current_temp_control_device == 'Hotplate Robot':
+                    self.parent.hotplate_robot.set_setpoint(25.0)
+                self.meas_status_update.emit('Measurement Finished. Temperature set point: 25°C')
+            else:
+                self.meas_status_update.emit('Measurement Finished.')
+            # Prevent issues with rollover from previous measurements.
+            self.step_temp = None
+            self.prev_step_temp = None
 
     def measure(self):
         self.meas_status_update.emit("Starting measurement.")
@@ -661,8 +913,8 @@ class CapFreqMeasureWorkerObject(QObject):
             self.blocking_func()
 
             # Set lcr according to step parameters
-            self.parent.lcr.signal_level(self.parent.combo_signal_type.currentText(), self.step_osc)
-            self.parent.lcr.dc_bias_level(self.parent.combo_bias_type.currentText(), self.step_bias)
+            self.parent.lcr.signal_level(self.parent.ui.combo_signal_type.currentText(), self.step_osc)
+            self.parent.lcr.dc_bias_level(self.parent.ui.combo_bias_type.currentText(), self.step_bias)
 
             # Generate frequency points for measurement
             freq_steps = Static.generate_log_steps(int(self.step_start),
@@ -673,7 +925,7 @@ class CapFreqMeasureWorkerObject(QObject):
             self.condition_equilibration_delay()
 
             # Start a new data line in each plot
-            self.parent.live_plot.canvas.start_new_line()
+            self.parent.ui.live_plot.canvas.start_new_line()
 
             self.meas_status_update.emit('Measurement in progress...')
 
@@ -708,9 +960,10 @@ class CapFreqMeasureWorkerObject(QObject):
 
 
 if __name__ == "__main__":
-#if standalone == 'capfreq':
-    lcr = AgilentE4980A(parent=None)
+    # if standalone == 'capfreq':
+    lcr_inst = AgilentE4980A(parent=None)
+    sun_inst = SunEC1xChamber(parent=None, gpib_addr='GPIB0::6::INSTR')
     app = QApplication(sys.argv)
-    main_window = CapFreqWidget(lcr=lcr)
+    main_window = CapFreqWidget(lcr=lcr_inst, sun=sun_inst)
     main_window.show()
     sys.exit(app.exec_())

@@ -1,4 +1,4 @@
-import visa
+import pyvisa
 from pyvisa.errors import VisaIOError
 from PyQt5.QtCore import QObject, pyqtSignal
 from time import sleep
@@ -10,7 +10,7 @@ class SunEC1xChamber(QObject):
     def __init__(self, gpib_addr=None):
         super(SunEC1xChamber, self).__init__()
 
-        self.rm = visa.ResourceManager()
+        self.rm = pyvisa.ResourceManager()
         if gpib_addr is not None:
             self.sun_addr = gpib_addr
         else:

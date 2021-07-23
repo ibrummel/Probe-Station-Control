@@ -73,14 +73,14 @@
           <widget class="QLineEdit" name="ln_num_pts"/>
          </item>
          <item row="4" column="0">
-          <widget class="QLabel" name="lbl_step_delay">
+          <widget class="QLabel" name="lbl_pre_meas_delay">
            <property name="text">
-            <string>Per Step Delay:</string>
+            <string>Measurement Delay:</string>
            </property>
           </widget>
          </item>
          <item row="4" column="1">
-          <widget class="QLineEdit" name="ln_step_delay"/>
+          <widget class="QLineEdit" name="ln_pre_meas_delay"/>
          </item>
          <item row="5" column="0">
           <widget class="QLabel" name="lbl_range">
@@ -384,9 +384,9 @@ Stability:</string>
          <string>Run Measurement Set</string>
         </property>
         <property name="icon">
-         <iconset>
-          <normaloff>../img/run.svg</normaloff>
-          <normalon>../img/stop.svg</normalon>../img/run.svg</iconset>
+         <iconset resource="resources.qrc">
+          <normaloff>:/img/run.svg</normaloff>
+          <normalon>:/img/stop.svg</normalon>:/img/run.svg</iconset>
         </property>
         <property name="iconSize">
          <size>
@@ -442,7 +442,7 @@ Stability:</string>
        <number>12</number>
       </property>
       <item>
-       <layout class="QVBoxLayout" name="verticalLayout_3" stretch="5,1,5,1,5,1,5,1">
+       <layout class="QVBoxLayout" name="vlayout_current_vals" stretch="5,5,5,5,1">
         <item>
          <widget class="QGroupBox" name="gbox_curr_freq">
           <property name="title">
@@ -482,19 +482,6 @@ Stability:</string>
          </widget>
         </item>
         <item>
-         <spacer name="spacer_curr_temp">
-          <property name="orientation">
-           <enum>Qt::Vertical</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>387</width>
-            <height>68</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-        <item>
          <widget class="QGroupBox" name="gbox_curr_temp">
           <property name="title">
            <string>Current Temperature:</string>
@@ -518,44 +505,33 @@ Stability:</string>
             </widget>
            </item>
            <item>
-            <layout class="QHBoxLayout" name="hlayout_temp_channel">
-             <item>
-              <widget class="QRadioButton" name="radio_chamber_tc">
-               <property name="text">
-                <string>ChamberTC</string>
-               </property>
-               <property name="checked">
-                <bool>true</bool>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QRadioButton" name="radio_user_tc">
-               <property name="text">
-                <string>User TC</string>
-               </property>
-               <property name="checked">
-                <bool>false</bool>
-               </property>
-              </widget>
-             </item>
-            </layout>
+            <widget class="QWidget" name="hlayout_temp_channel" native="true">
+             <layout class="QHBoxLayout" name="hlayout">
+              <item>
+               <widget class="QRadioButton" name="radio_chamber_tc">
+                <property name="text">
+                 <string>ChamberTC</string>
+                </property>
+                <property name="checked">
+                 <bool>true</bool>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QRadioButton" name="radio_user_tc">
+                <property name="text">
+                 <string>User TC</string>
+                </property>
+                <property name="checked">
+                 <bool>false</bool>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </widget>
            </item>
           </layout>
          </widget>
-        </item>
-        <item>
-         <spacer name="verticalSpacer_3">
-          <property name="orientation">
-           <enum>Qt::Vertical</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>20</width>
-            <height>40</height>
-           </size>
-          </property>
-         </spacer>
         </item>
         <item>
          <widget class="QGroupBox" name="gbox_val1">
@@ -594,19 +570,6 @@ Stability:</string>
            </item>
           </layout>
          </widget>
-        </item>
-        <item>
-         <spacer name="verticalSpacer_2">
-          <property name="orientation">
-           <enum>Qt::Vertical</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>20</width>
-            <height>40</height>
-           </size>
-          </property>
-         </spacer>
         </item>
         <item>
          <widget class="QGroupBox" name="gbox_val2">
@@ -657,9 +620,9 @@ Stability:</string>
            <string>Run Measurement Set</string>
           </property>
           <property name="icon">
-           <iconset>
-            <normaloff>../img/run.svg</normaloff>
-            <normalon>../img/stop.svg</normalon>../img/run.svg</iconset>
+           <iconset resource="resources.qrc">
+            <normaloff>:/img/run.svg</normaloff>
+            <normalon>:/img/stop.svg</normalon>:/img/run.svg</iconset>
           </property>
           <property name="iconSize">
            <size>
@@ -864,6 +827,8 @@ Step 0/0'</string>
    <container>1</container>
   </customwidget>
  </customwidgets>
- <resources/>
+ <resources>
+  <include location="resources.qrc"/>
+ </resources>
  <connections/>
 </ui>

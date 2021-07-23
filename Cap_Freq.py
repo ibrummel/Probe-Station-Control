@@ -37,7 +37,7 @@ class CapFreqWidget(QTabWidget):
         self.sun = sun
         self.hotplate_robot = hotplate_robot
         # Dictionary of references to temperature control devices
-        self.temp_control_devices = {'Sun EC1A': self.sun, 'Hotplate Robot': self.hotplate_robot, "None": None}
+        self.temp_control_devices = {"None": None, 'Sun EC1A': self.sun, 'Hotplate Robot': self.hotplate_robot}
         self.current_temp_control_device = 'None'
 
         # ToDo: Continue Here
@@ -55,6 +55,9 @@ class CapFreqWidget(QTabWidget):
         self.dwell = 10
         self.ramp = 5
         self.stab_int = 5
+        self.temp_tol = 0.5
+        self.stdev_tol = 0.5
+        self.z_stdev_tol = 1000
 
         self.num_measurements = 1
         self.tests_df = pd.DataFrame()
@@ -126,10 +129,13 @@ class CapFreqWidget(QTabWidget):
         self.ui.btn_run_start_stop.clicked.connect(self.on_start_stop_clicked)
         self.ui.btn_setup_start_stop.clicked.connect(self.on_start_stop_clicked)
         # Add connections for temperature controls
-        self.ui.combo_temp_control.currentTextChanged(self.change_temperature_control_device)
+        self.ui.combo_temp_control.currentTextChanged.connect(self.change_temp_control_device)
         self.ui.ln_dwell.editingFinished.connect(self.change_dwell)
         self.ui.ln_ramp.editingFinished.connect(self.change_ramp)
         self.ui.ln_stab_int.editingFinished.connect(self.change_stab_int)
+        self.ui.ln_temp_tol.editingFinished.connect(self.change_temp_tol)
+        self.ui.ln_stdev_tol.editingFinished.connect(self.change_stdev_tol)
+        self.ui.ln_z_stdev_tol.editingFinished.connect(self.change_z_stdev_tol)
 
         # Timers
         self.live_readout_timer.timeout.connect(self.get_new_data)
@@ -162,11 +168,23 @@ class CapFreqWidget(QTabWidget):
         self.ui.combo_signal_type.addItems(['Voltage', 'Current'])
         self.ui.combo_bias_type.addItems(['Voltage', 'Current'])
 
+        # Add default values for fields
+        self.ui.ln_num_pts.setText(str(self.num_pts))
+        self.ui.ln_data_averaging.setText(str(self.data_averaging))
+        self.ui.ln_pre_meas_delay.setText(str(self.pre_meas_delay))
+
         # Add available temperature control devices to the drop down
         # FIXME: 2 Add checking that each device is online and adjust this list accordingly.
         # FIXME: 2 Add a way to reconnect to devices while GUI is running
         self.ui.combo_temp_control.addItems(list(self.temp_control_devices.keys()))
         self.ui.combo_temp_control.setCurrentText(self.current_temp_control_device)
+        self.ui.ln_dwell.setText(str(self.dwell))
+        self.ui.ln_ramp.setText(str(self.ramp))
+        self.ui.ln_stab_int.setText(str(self.stab_int))
+        self.ui.ln_temp_tol.setText(str(self.temp_tol))
+        self.ui.ln_stdev_tol.setText(str(self.stdev_tol))
+        self.ui.ln_z_stdev_tol.setText(str(self.z_stdev_tol))
+
         # Set the initial values for dwell, ramprate, and stability interval
         self.change_dwell()
         self.change_ramp()
@@ -182,7 +200,6 @@ class CapFreqWidget(QTabWidget):
         self.ui.table_meas_setup.setHorizontalHeaderLabels(self.meas_setup_hheaders)
         self.ui.table_meas_setup.setVerticalHeaderLabels(self.meas_setup_vheaders)
         self.ui.table_meas_setup.setWordWrap(True)
-        self.ui.table_meas_setup.resizeColumnsToContents()
         self.add_table_items()
         self.ui.table_meas_setup.item(0, 0).setText('20')
         self.ui.table_meas_setup.item(0, 1).setText('2000000')
@@ -191,11 +208,14 @@ class CapFreqWidget(QTabWidget):
         self.ui.table_meas_setup.item(0, 4).setText('0')
 
         # DONE: Reinitialize table headers based on what temperature control device is selected.
-        if self.temp_control_devices is not "None":
-            self.table_meas_setup.setColumnCount(6)
-            self.table_meas_setup.setHorizontalHeaderLabels(self.meas_setup_hheaders)
+        if self.current_temp_control_device != "None":
+            print("It Ran")
+            self.ui.table_meas_setup.setColumnCount(6)
+            self.ui.table_meas_setup.setHorizontalHeaderLabels(self.meas_setup_hheaders)
             self.add_table_items()
-            self.table_meas_setup.item(0, 5).setText('25')
+            self.ui.table_meas_setup.item(0, 5).setText('25')
+
+        self.ui.table_meas_setup.resizeColumnsToContents()
 
     def get_new_data(self):
         # Helper function to get new data on timer timeout. Was failing when called directly, could be something about
@@ -241,7 +261,7 @@ class CapFreqWidget(QTabWidget):
     def change_temp_control_device(self, current_text: str):
         self.current_temp_control_device = current_text
         self.init_setup_table()
-        if current_text is "None":
+        if current_text == "None":
             self.ui.gbox_thermal_settings.setDisabled(True)
             # FIXME: Does the spacer make layouts weird?
             self.ui.gbox_curr_temp.hide()
@@ -260,6 +280,7 @@ class CapFreqWidget(QTabWidget):
             self.ui.lbl_pipe4.show()
             self.ui.lbl_temp.show()
             self.ui.lbl_curr_meas_temp.show()
+            self.ui.vlayout_current_vals.setStretchFactor(self.ui.gbox_curr_temp, 5)
             # self.meas_setup_hheaders = ['Frequency Start [Hz]',
             #                             'Frequency Stop [Hz]',
             #                             'Oscillator [V]',
@@ -275,6 +296,15 @@ class CapFreqWidget(QTabWidget):
 
     def change_dwell(self):
         self.dwell = float(self.ui.ln_dwell.text())
+
+    def change_temp_tol(self):
+        self.temp_tol = float(self.ui.ln_temp_tol.text())
+
+    def change_stdev_tol(self):
+        self.stdev_tol = float(self.ui.ln_stdev_tol.text())
+
+    def change_z_stdev_tol(self):
+        self.z_stdev_tol = float(self.ui.ln_z_stdev_tol.text())
 
     def change_ramp(self):
         self.ramp = float(self.ui.ln_ramp.text())
@@ -728,7 +758,7 @@ class CapFreqMeasureWorkerObject(QObject):
 
     def blocking_func(self):
         # DONE: Behavior based on selected temperature control device.
-        if self.parent.current_temp_control_device is "None":
+        if self.parent.current_temp_control_device == "None":
             pass
         else:
             # Define variables to hold logged temperatures
@@ -736,13 +766,9 @@ class CapFreqMeasureWorkerObject(QObject):
             chamber_T = []
             z = []
 
-            # Pull limit values from GUI
-            temp_tol = float(self.parent.ui.ln_temp_tol.text())
-            stdev_tol = float(self.parent.ui.ln_stdev_tol.text())
-            z_stdev_tol = float(self.parent.ui.ln_z_stdev_tol.text())
-
             if self.step_temp != self.prev_step_temp:
                 # Send the command to change the temperature
+                # FIXME: 2 Change all branches of this type to be less manual if possible.
                 if self.parent.current_temp_control_device == 'Sun EC1A':
                     self.parent.sun.set_setpoint(self.step_temp)
                     device = 'chamber'
@@ -755,14 +781,14 @@ class CapFreqMeasureWorkerObject(QObject):
                     # Get the current temperature and loop until setpoint is achieved
                     check_temp = float(self.parent.sun.get_temp())
                     if self.step_temp > check_temp:
-                        while check_temp < self.step_temp - float(self.parent.ui.ln_temp_tol.text()):
+                        while check_temp < self.step_temp - self.parent.temp_tol:
                             check_temp = float(self.parent.sun.get_temp())
                             self.parent.ui.lbl_curr_temp.setText(str(check_temp))
                             sleep(1)
                             if self.stop:
                                 break
                     elif self.step_temp < check_temp:
-                        while check_temp > self.step_temp + float(self.parent.ui.ln_temp_tol.text()):
+                        while check_temp > self.step_temp + self.parent.temp_tol:
                             check_temp = float(self.parent.sun.get_temp())
                             self.parent.ui.lbl_curr_temp.setText(str(check_temp))
                             sleep(1)
@@ -778,7 +804,7 @@ class CapFreqMeasureWorkerObject(QObject):
                         self.parent.ui.lbl_curr_temp.setText(chamber_T[-1])
                         count += 1
                         sleep(1)
-                        if len(chamber_T) > 5 and np.std(chamber_T) > stdev_tol and count >= int(self.parent.ui.ln_ramp.text()) * 60:
+                        if len(chamber_T) > 5 and np.std(chamber_T) > self.parent.stdev_tol and count >= int(self.parent.ui.ln_ramp.text()) * 60:
                             chamber_T = []
                             break
                         if self.stop:
@@ -833,20 +859,20 @@ class CapFreqMeasureWorkerObject(QObject):
                 # Check that statistics are within user specification. Re-run equilibration if so.
                 in_spec = True
                 if self.parent.current_temp_control_device == 'Sun EC1A' and abs(
-                        self.chamber_avg - self.step_temp) > temp_tol:
+                        self.chamber_avg - self.step_temp) > self.parent.temp_tol:
                     self.meas_status_update.emit(
                         'Temperature too far from setpoint ({delta} vs {deltol}) outside of tolerance.'.format(
-                            delta=abs(self.chamber_avg - self.step_temp), deltol=temp_tol))
+                            delta=abs(self.chamber_avg - self.step_temp), deltol=self.parent.temp_tol))
                     in_spec = False
-                elif self.chamber_stdev > stdev_tol:
+                elif self.chamber_stdev > self.parent.stdev_tol:
                     self.meas_status_update.emit(
                         'Temperature unstable. Standard deviation ({stdev} vs {stdevtol}) outside of tolerance.'.format(
-                            stdev=self.chamber_stdev, stdevtol=stdev_tol))
+                            stdev=self.chamber_stdev, stdevtol=self.parent.stdev_tol))
                     in_spec = False
                 if self.parent.ui.check_z_stability.isChecked():
-                    if self.z_stdev > z_stdev_tol:
+                    if self.z_stdev > self.parent.z_stdev_tol:
                         self.meas_status_update.emit('Impedance variation outside of tolerance: '
-                                                     'Tolerance={tol}, Measured Stdev={stdev}'.format(tol=z_stdev_tol,
+                                                     'Tolerance={tol}, Measured Stdev={stdev}'.format(tol=self.parent.z_stdev_tol,
                                                                                                       stdev=self.z_stdev))
                         in_spec = False
 
@@ -961,9 +987,10 @@ class CapFreqMeasureWorkerObject(QObject):
 
 if __name__ == "__main__":
     # if standalone == 'capfreq':
-    lcr_inst = AgilentE4980A(parent=None)
-    sun_inst = SunEC1xChamber(parent=None, gpib_addr='GPIB0::6::INSTR')
+    lcr_inst = AgilentE4980A()
+    sun_inst = SunEC1xChamber(gpib_addr='GPIB0::6::INSTR')
+    hotplate_robot_inst = HotplateRobot(port='COM3', baud=115200)
     app = QApplication(sys.argv)
-    main_window = CapFreqWidget(lcr=lcr_inst, sun=sun_inst)
+    main_window = CapFreqWidget(lcr=lcr_inst, sun=sun_inst, hotplate_robot=hotplate_robot_inst)
     main_window.show()
     sys.exit(app.exec_())

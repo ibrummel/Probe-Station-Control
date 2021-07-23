@@ -1,6 +1,6 @@
-from Agilent_E4980A_Constants import *
+from Instrument_Interfaces.Agilent_E4980A_Constants import *
 
-import visa
+import pyvisa
 from pyvisa.errors import VisaIOError
 from PyQt5.QtCore import QObject, pyqtSignal
 from time import sleep
@@ -10,10 +10,10 @@ class AgilentE4980A(QObject):
     # This signal needs to be defined before the __init__ in order to allow it to work
     new_data = pyqtSignal(list)
     
-    def __init__(self, parent=None, gpib_addr=None):
-        super().__init__(parent)
+    def __init__(self, gpib_addr=None):
+        super(AgilentE4980A, self).__init__()
 
-        self.rm = visa.ResourceManager()
+        self.rm = pyvisa.ResourceManager()
         self.lcr_addr = gpib_addr
 
         if self.lcr_addr is None:
@@ -23,7 +23,7 @@ class AgilentE4980A(QObject):
                 print("Could not connect to lcr. GPIB address not found.")
                 self.manual_connect_lcr()
         else:
-            self.lcr = visa.ResourceManager().open_resource(self.lcr_addr)
+            self.lcr = pyvisa.ResourceManager().open_resource(self.lcr_addr)
 
     def connect_lcr(self):
         instruments = self.rm.list_resources()

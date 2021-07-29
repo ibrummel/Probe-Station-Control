@@ -12,9 +12,27 @@ Adafruit_MAX31856 maxthermo = Adafruit_MAX31856(A2);
 //Adafruit_MAX31856 maxthermo = Adafruit_MAX31856(10, &SPI1);
 bool dataReady = false;
 bool fault = false;
-Servo tKnob;
+Servo tKnob1;
+Servo tKnob2;
 int pos = 0;
 float lastTemp = -100;
+
+void moveDoubleServo(int pos){
+  tKnob1.write(pos);
+  tKnob2.write(pos);
+}
+
+int readDoubleServo(){
+  int pos1, pos2;
+  pos1 = tKnob1.read();
+  pos2 = tKnob2.read();
+
+  if (pos1 != pos2) {
+    tKnob2.write(pos1);
+  }
+
+  return pos1;
+}
 
 void setup() {
   Serial.begin(115200);
@@ -22,7 +40,8 @@ void setup() {
   
   pinMode(A1, INPUT); // Fault Pin
   pinMode(A0, INPUT); // Data Ready
-  tKnob.attach(A10);
+  tKnob1.attach(A10); // Colored Silver, left servo
+  tKnob2.attach(A9);  // Not colored, Right servo
 
   if (!maxthermo.begin()) {
     Serial.println("<Could not initialize thermocouple.>");
@@ -46,9 +65,12 @@ void setup() {
   //   default: Serial.println("Unknown"); break;
   // }
 
-  tKnob.write(0.0);
+  // Diagnostic Motor Spin on start.
+  // moveDoubleServo(0.0);
+  // delay(200);
+  // moveDoubleServo(180);
+
   delay(200);
-  tKnob.write(180);
 
   maxthermo.setConversionMode(MAX31856_ONESHOT_NOWAIT);
 }
@@ -92,7 +114,7 @@ void loop() {
     if (commandType == QUERY){
       if (axis == 'p') {
         char charInt[7];
-        itoa(tKnob.read(), charInt, 10);
+        itoa(readDoubleServo(), charInt, 10);
         respond(charInt);
       }
       else if (axis == 't') {
@@ -103,7 +125,7 @@ void loop() {
     }
     else if (commandType == COMMAND) {
       if (axis == 'p') {
-        tKnob.write(value);
+        moveDoubleServo(value);
       }
     }
 

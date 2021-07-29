@@ -83,7 +83,7 @@ class CapFreqWidget(QTabWidget):
         #                             'DC Bias [V]',
         #                             'Equilibration Delay [s]']
         self.meas_setup_vheaders = ['M1']
-        # FIXME: Reinitialize table headers based on what temperature control device is selected.
+        # DONE: Reinitialize table headers based on what temperature control device is selected.
         self.meas_setup_hheaders = ['Frequency Start [Hz]',
                                     'Frequency Stop [Hz]',
                                     'Oscillator [V]',
@@ -195,12 +195,13 @@ class CapFreqWidget(QTabWidget):
 
     def init_setup_table(self):
         # Set up initial table headers and size
-        self.ui.table_meas_setup.setRowCount(1)
+        self.ui.table_meas_setup.setRowCount(len(self.meas_setup_vheaders))
         self.ui.table_meas_setup.setColumnCount(5)
         self.ui.table_meas_setup.setHorizontalHeaderLabels(self.meas_setup_hheaders)
         self.ui.table_meas_setup.setVerticalHeaderLabels(self.meas_setup_vheaders)
         self.ui.table_meas_setup.setWordWrap(True)
         self.add_table_items()
+
         self.ui.table_meas_setup.item(0, 0).setText('20')
         self.ui.table_meas_setup.item(0, 1).setText('2000000')
         self.ui.table_meas_setup.item(0, 2).setText('0.2')
@@ -213,7 +214,7 @@ class CapFreqWidget(QTabWidget):
             self.ui.table_meas_setup.setColumnCount(6)
             self.ui.table_meas_setup.setHorizontalHeaderLabels(self.meas_setup_hheaders)
             self.add_table_items()
-            self.ui.table_meas_setup.item(0, 5).setText('25')
+            self.ui.table_meas_setup.item(0, 5).setText('35')
 
         self.ui.table_meas_setup.resizeColumnsToContents()
 
@@ -263,17 +264,10 @@ class CapFreqWidget(QTabWidget):
         self.init_setup_table()
         if current_text == "None":
             self.ui.gbox_thermal_settings.setDisabled(True)
-            # FIXME: Does the spacer make layouts weird?
             self.ui.gbox_curr_temp.hide()
             self.ui.lbl_pipe4.hide()
             self.ui.lbl_temp.hide()
             self.ui.lbl_curr_meas_temp.hide()
-            # self.meas_setup_hheaders = ['Frequency Start [Hz]',
-            #                             'Frequency Stop [Hz]',
-            #                             'Oscillator [V]',
-            #                             'DC Bias [V]',
-            #                             'Equilibration Delay [s]',]
-        # DONE: 2 Make only relevant settings available based on temperature control device selection.
         else:
             self.ui.gbox_thermal_settings.setDisabled(False)
             self.ui.gbox_curr_temp.show()
@@ -281,12 +275,6 @@ class CapFreqWidget(QTabWidget):
             self.ui.lbl_temp.show()
             self.ui.lbl_curr_meas_temp.show()
             self.ui.vlayout_current_vals.setStretchFactor(self.ui.gbox_curr_temp, 5)
-            # self.meas_setup_hheaders = ['Frequency Start [Hz]',
-            #                             'Frequency Stop [Hz]',
-            #                             'Oscillator [V]',
-            #                             'DC Bias [V]',
-            #                             'Equilibration Delay [s]',
-            #                             'Temperature Set Point [°C]']
             if self.current_temp_control_device == 'Sun EC1A':
                 self.ui.hlayout_temp_channel.show()
                 self.ui.lbl_ramp.setText("Ramp Rate:")

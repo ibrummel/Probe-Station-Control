@@ -789,7 +789,7 @@ class CapFreqMeasureWorkerObject(QObject):
                     while True:
                         chamber_T = chamber_T[-60:]
                         chamber_T.append(float(self.parent.hotplate_robot.get_temp()))
-                        self.parent.ui.lbl_curr_temp.setText(chamber_T[-1])
+                        self.parent.ui.lbl_curr_temp.setText(str(chamber_T[-1]))
                         count += 1
                         sleep(1)
                         if len(chamber_T) > 5 and np.std(chamber_T) > self.parent.stdev_tol and count >= int(self.parent.ui.ln_ramp.text()) * 60:
@@ -976,8 +976,8 @@ class CapFreqMeasureWorkerObject(QObject):
 if __name__ == "__main__":
     # if standalone == 'capfreq':
     lcr_inst = AgilentE4980A()
-    sun_inst = SunEC1xChamber(gpib_addr='GPIB0::6::INSTR')
-    hotplate_robot_inst = HotplateRobot(port='COM3', baud=115200)
+    sun_inst = SunEC1xChamber(gpib_addr='GPIB1::6::INSTR')
+    hotplate_robot_inst = HotplateRobot(port='COM4', baud=115200)
     app = QApplication(sys.argv)
     main_window = CapFreqWidget(lcr=lcr_inst, sun=sun_inst, hotplate_robot=hotplate_robot_inst)
     main_window.show()

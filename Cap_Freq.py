@@ -792,9 +792,12 @@ class CapFreqMeasureWorkerObject(QObject):
                         self.parent.ui.lbl_curr_temp.setText(chamber_T[-1])
                         count += 1
                         sleep(1)
-                        if len(chamber_T) > 5 and np.std(chamber_T) > self.parent.stdev_tol and count >= int(self.parent.ui.ln_ramp.text()) * 60:
-                            chamber_T = []
-                            break
+                        if count >= int(self.parent.ui.ln_ramp.text()) * 60:
+                            print("Hotplate ramp time complete. "
+                                  "Temperature standard deviation = {}".format(np.std(chamber_T)))
+                            if np.std(chamber_T) < self.parent.stdev_tol:
+                                chamber_T = []
+                                break
                         if self.stop:
                             break
 

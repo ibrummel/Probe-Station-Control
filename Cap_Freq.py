@@ -337,8 +337,20 @@ class CapFreqWidget(QTabWidget):
 
     def update_live_readout(self, data: list):
         self.ui.lbl_curr_freq.setText(str(Static.si_prefix(data[0], 'Hz', 4)))
-        self.ui.lbl_val1.setText(str(Static.to_sigfigs(data[1], 6)))
-        self.ui.lbl_val2.setText(str(Static.to_sigfigs(data[2], 6)))
+
+        val_params = Const.PARAMETERS_BY_FUNC[Const.FUNC_DICT[self.lcr_function]]
+        val1_unit = val_params[0].split('[')[1].split(']')[0]
+        val2_unit = val_params[1].split('[')[1].split(']')[0]
+
+        if val1_unit != '':
+            self.ui.lbl_val1.setText(Static.si_prefix(data[1], val1_unit, 4))
+        else:
+            self.ui.lbl_val1.setText(str(Static.to_sigfigs(data[1], 4)))
+
+        if val2_unit != '':
+            self.ui.lbl_val2.setText(Static.si_prefix(data[2], val2_unit, 4))
+        else:
+            self.ui.lbl_val2.setText(str(Static.to_sigfigs(data[2], 4)))
 
         if self.enable_live_vals:
             try:

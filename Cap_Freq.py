@@ -47,7 +47,7 @@ class CapFreqWidget(QTabWidget):
         self.data_averaging = 1
         self.signal_type = 'voltage'
         self.bias_type = 'voltage'
-        self.num_pts = 50
+        self.num_pts = 200
         self.pre_meas_delay = 0.0
         self.enable_live_plots = False
         self.enable_live_vals = True
@@ -164,6 +164,8 @@ class CapFreqWidget(QTabWidget):
         # Set up comboboxes
         self.ui.combo_range.addItems(Const.VALID_IMP_RANGES)
         self.ui.combo_function.addItems(list(Const.FUNC_DICT.keys()))
+        self.ui.combo_function.setCurrentText("Z-Thd")
+        self.lcr.function("Z-Thd")
         self.ui.combo_meas_time.addItems(list(Const.MEASURE_TIME_DICT.keys()))
         self.ui.combo_signal_type.addItems(['Voltage', 'Current'])
         self.ui.combo_bias_type.addItems(['Voltage', 'Current'])

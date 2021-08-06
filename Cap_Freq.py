@@ -340,7 +340,7 @@ class CapFreqWidget(QTabWidget):
     def update_live_readout(self, data: list):
         self.ui.lbl_curr_freq.setText(str(Static.si_prefix(data[0], 'Hz', 4)))
 
-        val_params = Const.PARAMETERS_BY_FUNC[Const.FUNC_DICT[self.lcr_function]]
+        val_params = Const.PARAMETERS_BY_FUNC[Const.FUNC_DICT[self.ui.combo_function.currentText()]]
         val1_unit = val_params[0].split('[')[1].split(']')[0]
         val2_unit = val_params[1].split('[')[1].split(']')[0]
 

@@ -212,7 +212,6 @@ class CapFreqWidget(QTabWidget):
 
         # DONE: Reinitialize table headers based on what temperature control device is selected.
         if self.current_temp_control_device != "None":
-            print("It Ran")
             self.ui.table_meas_setup.setColumnCount(6)
             self.ui.table_meas_setup.setHorizontalHeaderLabels(self.meas_setup_hheaders)
             self.add_table_items()
@@ -340,9 +339,14 @@ class CapFreqWidget(QTabWidget):
     def update_live_readout(self, data: list):
         self.ui.lbl_curr_freq.setText(str(Static.si_prefix(data[0], 'Hz', 4)))
 
-        val_params = Const.PARAMETERS_BY_FUNC[Const.FUNC_DICT[self.ui.combo_function.currentText()]]
-        val1_unit = val_params[0].split('[')[1].split(']')[0]
-        val2_unit = val_params[1].split('[')[1].split(']')[0]
+        try:
+            val_params = Const.PARAMETERS_BY_FUNC[Const.FUNC_DICT[self.ui.combo_function.currentText()]]
+            val1_unit = val_params[0].split('[')[1].split(']')[0]
+            val2_unit = val_params[1].split('[')[1].split(']')[0]
+        except KeyError:
+            # print("Could not get value param units")
+            val1_unit = ''
+            val2_unit = ''
 
         if val1_unit != '':
             self.ui.lbl_val1.setText(Static.si_prefix(data[1], val1_unit, 4))

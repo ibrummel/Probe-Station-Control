@@ -76,12 +76,6 @@ class CapFreqWidget(QTabWidget):
         self.ui = Ui_cap_freq()
         self.ui.setupUi(self)
 
-        # Define controls for the per measurement settings
-        # self.meas_setup_hheaders = ['Frequency Start [Hz]',
-        #                             'Frequency Stop [Hz]',
-        #                             'Oscillator [V]',
-        #                             'DC Bias [V]',
-        #                             'Equilibration Delay [s]']
         self.meas_setup_vheaders = ['M1']
         # DONE: Reinitialize table headers based on what temperature control device is selected.
         self.meas_setup_hheaders = ['Frequency Start [Hz]',
@@ -91,8 +85,8 @@ class CapFreqWidget(QTabWidget):
                                     'Equilibration Delay [s]',
                                     'Temperature Set Point [°C]']
         # This might break depending on how adding headers to a table is handled in pyqt5
-        # FIXME: Update calls to temperature UI parts in copied code.
-        # FIXME: Add greyed out gbox for temp control if no temperature control device selected
+        # DONE: Update calls to temperature UI parts in copied code.
+        # DONE: Add greyed out gbox for temp control if no temperature control device selected
 
         self.init_measure_worker()
 
@@ -227,6 +221,7 @@ class CapFreqWidget(QTabWidget):
 
     def change_function(self):
         self.lcr_function = self.ui.combo_function.currentText()
+        self.lcr.function(self.lcr_function)
         self.update_val_labels()
 
     def change_meas_aperture(self):
@@ -912,7 +907,7 @@ class CapFreqMeasureWorkerObject(QObject):
                 if self.parent.current_temp_control_device == 'Sun EC1A':
                     self.parent.sun.set_setpoint(25.0)
                 elif self.parent.current_temp_control_device == 'Hotplate Robot':
-                    self.parent.hotplate_robot.set_setpoint(25.0)
+                    self.parent.hotplate_robot.update_position(180)
                 self.meas_status_update.emit('Measurement Finished. Temperature set point: 25°C')
             else:
                 self.meas_status_update.emit('Measurement Finished.')

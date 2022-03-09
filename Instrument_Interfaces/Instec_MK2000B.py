@@ -25,6 +25,12 @@ class MK2000B(object):
     def stop(self):
         self.controller.write('Temp:STOP')
 
+    def shutdown(self):
+        self.stop()
+        log_string = 'Set Instec MK2000B to stop mode.'
+        print(log_string)
+        return log_string
+
     def update_RTIN(self):
         tnow = time()
         if tnow-self.last_RTIN_update >= self.dead_time:

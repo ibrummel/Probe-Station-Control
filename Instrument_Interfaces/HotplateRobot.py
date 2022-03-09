@@ -38,6 +38,12 @@ class HotplateRobot(object):
 
         self.update_position(pos)
 
+    def shutdown(self):
+        self.update_position(180)
+        log_string = 'Moved robot to position 180 to set hotplate off.'
+        print(log_string)
+        return log_string
+
     def query_param(self, query: str, start_char='?', end_char='\r'):
         query = start_char + query + end_char
         self.robot.write(query.encode('utf-8'))

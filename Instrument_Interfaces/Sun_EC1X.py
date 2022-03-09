@@ -85,3 +85,9 @@ class SunEC1xChamber(QObject):
             print("Error on getting ramp rate: {}".format(error.abbreviation))
             return -9999.0
 
+    def shutdown(self):
+        self.set_setpoint(20)
+        self.sun.write('COFF')
+        log_string = 'Set sun setpoint to 20C without active cooling'
+        print(log_string)
+        return log_string

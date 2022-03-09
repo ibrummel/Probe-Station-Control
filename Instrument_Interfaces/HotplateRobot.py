@@ -34,7 +34,7 @@ class HotplateRobot(object):
     def set_setpoint(self, stpt: float):
         # Note: This equation was determined empirically based on an excel fit of a calibration curve.
         #  See 2021.07.26 - Hotplate Robot v2 Temp Calibration.xlsx
-        pos = int(-0.2622(stpt) + 159.02)
+        pos = int(-0.2622 * stpt + 159.02)
 
         self.update_position(pos)
 

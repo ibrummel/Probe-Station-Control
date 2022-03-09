@@ -1,0 +1,4 @@
+{"sun": "GPIB0::6::INSTR",
+ "hotplate": "COM6",
+ "mk2000b": "ASRL7::INSTR"
+}

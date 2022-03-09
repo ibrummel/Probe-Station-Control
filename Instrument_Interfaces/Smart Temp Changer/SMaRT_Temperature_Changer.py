@@ -1,6 +1,7 @@
 import argparse
 import os
 import sys
+import json
 
 sys.path.append(r"C:\Users\Public\Ihlefeld_Apps\Probe-Station-Control")
 from time import time, sleep
@@ -37,23 +38,29 @@ parser.add_argument('--stab_int', dest='stab_int', nargs='?', default=5, type=in
 #  have standard calls to allow this interchangeability.
 temperature_controller = None
 
-try:
-    args = parser.parse_args()
-    if args.ctrl_inst.lower() == 'sun':
-        sun = SunEC1xChamber(gpib_addr='GPIB0::6::INSTR')
-        sun.set_ramprate(5)
-        sun.sun.write('COFF')
-        temperature_controller = sun
-    elif args.ctrl_inst.lower() == 'hotplate':
-        hotplate_robot = HotplateRobot(port='COM5', baud=115200)
-        temperature_controller = hotplate_robot
-    elif args.ctrl_inst.lower() == 'mk2000b':
-        mk2000b = MK2000B('ASRL7::INSTR')
-        temperature_controller = mk2000b
-    else:
-        raise ValueError('Invalid instrument supplied')
-except:
-    input('Error on parsing arguments press enter to continue')
+# Read the instrument addresses defined in instrument_addresses.json file
+path = r'C:/Users/Public/Ihlefeld_Apps/Probe-Station-Control/Instrument_Interfaces/instrument_addresses.json'
+with open(path, 'r') as file:
+    data = file.read()
+instrument_addresses = json.loads(data) 
+# Parse Arguments and setup temperature controller
+args = parser.parse_args()
+print('Args parsed as: {}'.format(args))
+if args.ctrl_inst.lower() == 'sun':
+    sun = SunEC1xChamber(gpib_addr=instrument_addresses[args.ctrl_inst])
+    sun.set_ramprate(5)
+    sun.sun.write('COFF')
+    temperature_controller = sun
+elif args.ctrl_inst.lower() == 'hotplate':
+    print('Got hotplate as instrument')
+    hotplate_robot = HotplateRobot(port=instrument_addresses[args.ctrl_inst], baud=115200)
+    temperature_controller = hotplate_robot
+elif args.ctrl_inst.lower() == 'mk2000b':
+    mk2000b = MK2000B(instrument_addresses[args.ctrl_inst])
+    temperature_controller = mk2000b
+else:
+    raise ValueError('Invalid instrument supplied')
+
 
 if not os.path.exists(args.file_path):
     with open(args.file_path, 'w') as logfile:

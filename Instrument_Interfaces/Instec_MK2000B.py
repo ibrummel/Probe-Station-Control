@@ -7,7 +7,8 @@ class MK2000B(object):
         super(MK2000B, self).__init__()
         self.controller = pyvisa.ResourceManager().open_resource(inst_addr, baud_rate=baud, timeout=timeout,
                                                                  write_termination='\r\n', read_termination='\r\n')
-
+        self.PID_enabled = True
+        self.instrument_name_string = 'Instec MK2000B'
         self.last_RTIN_update = 0
         self.dead_time = float(dead_time/1000)
         self.RTIN = {}

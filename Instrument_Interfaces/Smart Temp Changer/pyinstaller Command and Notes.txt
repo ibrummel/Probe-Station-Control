@@ -1,0 +1,5 @@
+Command:
+pyinstaller -F --paths="C:\Users\Public\Ian Data\EIS\SMaRT Temp Changer" .\SMaRT_Temperature_Changer.py --hidden-import numpy --hidden-import pyvisa --hidden-import PyQt5 --hidden-import PyQt5.QtCore --hidden-import time --hidden-import serial
+
+Notes:
+- Needed to install numpy through pip specifically. There are issues with pyinstaller grabbing the intel MKL dlls if you install numpy through conda. See here: https://stackoverflow.com/questions/35478526/pyinstaller-numpy-intel-mkl-fatal-error-cannot-load-mkl-intel-thread-dll

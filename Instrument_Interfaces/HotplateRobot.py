@@ -6,6 +6,8 @@ class HotplateRobot(object):
         super(HotplateRobot, self).__init__()
         self.robot = serial.Serial(port, baud, timeout=timeout)
         self.last_move = None
+        self.PID_enabled = False
+        self.instrument_name_string = 'Hotplate Robot'
 
     def read_response(self, start_char='<', end_char='>'):
         rc = self.robot.read()

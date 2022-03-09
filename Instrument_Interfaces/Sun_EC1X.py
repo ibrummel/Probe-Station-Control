@@ -10,6 +10,8 @@ class SunEC1xChamber(QObject):
     def __init__(self, gpib_addr=None):
         super(SunEC1xChamber, self).__init__()
 
+        self.PID_enabled = True
+        self.instrument_name_string = 'Sun EC1A'
         self.rm = pyvisa.ResourceManager()
         if gpib_addr is not None:
             self.sun_addr = gpib_addr

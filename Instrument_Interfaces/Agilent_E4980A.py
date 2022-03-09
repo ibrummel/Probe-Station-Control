@@ -42,6 +42,17 @@ class AgilentE4980A(QObject):
             except VisaIOError:
                 curr_instr.close()
 
+    def clear_status(self, write_or_build='write'):
+        command = '*CLS'
+
+        if write_or_build.lower() == 'write':
+            try:
+                self.lcr.write(command)
+            except VisaIOError as error:
+                print("Visa Error on resetting LCR status registers: {}".format(error.abbreviation))
+        elif write_or_build.lower() == 'build':
+            return command
+
     def impedance_range(self, imp_range, write_or_build='write'):
         if imp_range == 'auto':
             command = ':FUNC:IMP:RANG:AUTO ON'
@@ -218,21 +229,95 @@ class AgilentE4980A(QObject):
         elif write_or_build.lower() == 'build':
             return command
 
+    def enable_short_correction(self, enable=True, write_or_build='write'):
+        if isinstance(enable, bool):
+            enable = 'ON' if enable else 'OFF'
+        elif isinstance(enable, str) and enable.upper() in ['ON', 'OFF']:
+            enable = enable.upper()
+        else:
+            raise ValueError("Invalid enable value provided")
+
+        command = ':CORR:SHORT:STAT {}'.format(enable)
+
+        if write_or_build.lower() == 'write':
+            try:
+                self.lcr.write(command)
+            except VisaIOError as error:
+                print("Error on setting the short correction to {}. Error: {}".format(enable, error.abbreviation))
+                return self.enable_short_correction()
+
+    def enable_open_correction(self, enable=True, write_or_build='write'):
+        if isinstance(enable, bool):
+            enable = 'ON' if enable else 'OFF'
+        elif isinstance(enable, str) and enable.upper() in ['ON', 'OFF']:
+            enable = enable.upper()
+        else:
+            raise ValueError("Invalid enable value provided")
+
+        command = ':CORR:OPEN:STAT {}'.format(enable)
+
+        if write_or_build.lower() == 'write':
+            try:
+                self.lcr.write(command)
+            except VisaIOError as error:
+                print("Error on setting the open correction to {}. Error: {}".format(enable, error.abbreviation))
+                return self.enable_short_correction()
+
+    def enable_load_correction(self, enable=True, write_or_build='write'):
+        if isinstance(enable, bool):
+            enable = 'ON' if enable else 'OFF'
+        elif isinstance(enable, str) and enable.upper() in ['ON', 'OFF']:
+            enable = enable.upper()
+        else:
+            raise ValueError("Invalid enable value provided")
+
+        command = ':CORR:LOAD:STAT {}'.format(enable)
+
+        if write_or_build.lower() == 'write':
+            try:
+                self.lcr.write(command)
+            except VisaIOError as error:
+                print("Error on setting the load correction to {}. Error: {}".format(enable, error.abbreviation))
+                return self.enable_short_correction()
+
+    def measure_short_correction(self, write_or_build='write'):
+        command = ':CORR:SHORT:EXEC'
+        if write_or_build.lower() == 'write':
+            try:
+                self.lcr.write(command)
+            except VisaIOError as error:
+                print("Error on sending command to execute short correction. Error: {}".format(error.abbreviation))
+
+    def measure_open_correction(self, write_or_build='write'):
+        command = ':CORR:OPEN:EXEC'
+        if write_or_build.lower() == 'write':
+            try:
+                self.lcr.write(command)
+            except VisaIOError as error:
+                print("Error on sending command to execute open correction. Error: {}".format(error.abbreviation))
+
+    def measure_load_correction(self, write_or_build='write'):
+        command = ':CORR:LOAD:EXEC'
+        if write_or_build.lower() == 'write':
+            try:
+                self.lcr.write(command)
+            except VisaIOError as error:
+                print("Error on sending command to execute LOAD correction. Error: {}".format(error.abbreviation))
+
     def get_data(self):
         try:
             rec_data = self.lcr.query(':FETC?')
             rec_data = rec_data.rstrip().split(',')
             rec_data = [float(x) for x in rec_data]
         except VisaIOError as error:
-            if error.abbreviation == "VI_ERROR_TMO":
-                print('LCR did not return data in time ({}).\tRetrying...'.format(error.abbreviation))
-            else:
-                print('Error on retrieving data from LCR: {}\nRetrying...'.format(error.abbreviation))
+            print('Error on retrieving data from LCR: {}\nRetrying...'.format(error.abbreviation))
             sleep(0.1)
+            self.clear_status()
             return self.get_data()
         except ValueError as error:
             print("Unable to read data from LCR - Float conversion error ({}) Retrying...".format(error))
             sleep(0.1)
+            self.clear_status()
             return self.get_data()
         else:
             freq = self.get_signal_frequency()

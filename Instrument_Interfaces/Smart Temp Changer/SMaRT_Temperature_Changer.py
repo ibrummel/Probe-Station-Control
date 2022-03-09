@@ -29,7 +29,7 @@ parser.add_argument('--stdevtol', dest='stdev_tol', nargs='?', default=0.5, type
 parser.add_argument('--ramp', dest='ramp_time', nargs='?', default=10, type=float,
                     help='Sets the number of minutes to allow the hotplate to heat to its setpoint. Defaults to 10 min.'
                          'Ignored if not using hotplate robot to control temperature.')
-parser.add_argument('--dwell', dest='dwell', nargs='?', default=10, type=float,
+parser.add_argument('--dwell', dest='dwell', nargs='?', default=30, type=float,
                     help='Sets the number of minutes to track temperature for checking stability. Defaults to 10 min.')
 parser.add_argument('--stab_int', dest='stab_int', nargs='?', default=5, type=int,
                     help='Integer number of seconds to wait between taking measurements during stabilization period.')
@@ -66,8 +66,7 @@ if not os.path.exists(args.file_path):
     with open(args.file_path, 'w') as logfile:
         header_modification = 'Ramp Time (min)' if temperature_controller.PID_enabled else 'Ramp Rate (C/min)'
         logfile.write('Timestamp,Setpoint Temp (C),Average Temp (C),Stdev Temp (C),Stdev Tolerance,'
-                      'Control Instrument,{},Dwell(min),Stabilization Interval(sec)\n').format(header_modification)
-
+                      'Control Instrument,{},Dwell(min),Stabilization Interval(sec)\n'.format(header_modification))
 
 def log_to_file(log_str: str, file_path=args.file_path + '_log'):
     with open(file_path, 'a') as logfile:

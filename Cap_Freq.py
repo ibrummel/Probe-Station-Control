@@ -992,8 +992,8 @@ class CapFreqMeasureWorkerObject(QObject):
 if __name__ == "__main__":
     # if standalone == 'capfreq':
     lcr_inst = AgilentE4980A()
-    sun_inst = SunEC1xChamber(gpib_addr='GPIB1::6::INSTR')
-    hotplate_robot_inst = HotplateRobot(port='COM4', baud=115200)
+    sun_inst = SunEC1xChamber(gpib_addr='GPIB0::6::INSTR')
+    hotplate_robot_inst = HotplateRobot(port='COM6', baud=115200)
     app = QApplication(sys.argv)
     main_window = CapFreqWidget(lcr=lcr_inst, sun=sun_inst, hotplate_robot=hotplate_robot_inst)
     main_window.show()

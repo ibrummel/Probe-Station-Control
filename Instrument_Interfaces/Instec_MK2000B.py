@@ -19,8 +19,8 @@ class MK2000B(object):
     # def set_rate(self):
         # self.controller.write('Temp:Rate')
 
-    def set_setpoint(self, stpt: float, rate=5):
-        self.controller.write('Temp:RAMP {},{}'.format(stpt, rate))
+    def set_setpoint(self, stpt: float):
+        self.controller.write('Temp:RAMP {},{}'.format(stpt, self.ramp))
 
     def stop(self):
         self.controller.write('Temp:STOP')
@@ -54,6 +54,9 @@ class MK2000B(object):
     def get_temp(self):
         self.update_RTIN()
         return self.RTIN['temp']
+    
+    def set_ramprate(self, ramp: float):
+        self.ramp = ramp
 
     def get_current_stpt(self):
         self.update_RTIN()

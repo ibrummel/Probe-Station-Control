@@ -1,9 +1,9 @@
 import sys
 from PyQt5.QtCore import QThread
-from Instrument_Interfacees.Sun_EC1X import SunEC1xChamber
+from Instrument_Interfaces.Sun_EC1X import SunEC1xChamber
 # from fake_sun import SunEC1xChamber
 from Cap_Freq import CapFreqWidget, CapFreqMeasureWorkerObject
-from Instrument_Interfacees.Agilent_E4980A import AgilentE4980A
+from Instrument_Interfaces.Agilent_E4980A import AgilentE4980A
 # from fake_E4980 import AgilentE4980A
 from File_Print_Headers import *
 from statistics import stdev, mean, StatisticsError
@@ -19,7 +19,7 @@ class CapFreqTempWidget(CapFreqWidget):
     def __init__(self, lcr: AgilentE4980A, sun: SunEC1xChamber, measuring_thread=QThread()):
 
 
-        super(CapFreqTempWidget, self).__init__(lcr=lcr, measuring_thread=measuring_thread, ui_path='./src/ui/cap_freq_temp_tabs.ui')
+        super(CapFreqTempWidget, self).__init__(lcr=lcr, measuring_thread=measuring_thread)
 
         # Override from base class to add a temperature field
         self.meas_setup_hheaders = ['Frequency Start [Hz]',
@@ -290,8 +290,8 @@ class CapFreqTempMeasureWorkerObject(CapFreqMeasureWorkerObject):
 
 
 if __name__ == "__main__":
-    lcr = AgilentE4980A(parent=None)
-    sun = SunEC1xChamber(parent=None, gpib_addr='GPIB0::6::INSTR')
+    lcr = AgilentE4980A()
+    sun = SunEC1xChamber(gpib_addr='GPIB0::6::INSTR')
     app = QApplication(sys.argv)
     main_window = CapFreqTempWidget(lcr=lcr, sun=sun)
     main_window.show()

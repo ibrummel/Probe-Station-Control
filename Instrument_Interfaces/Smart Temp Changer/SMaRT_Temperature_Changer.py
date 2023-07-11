@@ -64,7 +64,7 @@ else:
 
 if not os.path.exists(args.file_path):
     with open(args.file_path, 'w') as logfile:
-        header_modification = 'Ramp Time (min)' if temperature_controller.PID_enabled else 'Ramp Rate (C/min)'
+        header_modification = 'Ramp Time (min)' if not temperature_controller.PID_enabled else 'Ramp Rate (C/min)'
         logfile.write('Timestamp,Setpoint Temp (C),Average Temp (C),Stdev Temp (C),Stdev Tolerance,'
                       'Control Instrument,{},Dwell(min),Stabilization Interval(sec)\n'.format(header_modification))
 
@@ -162,7 +162,7 @@ def blocking_func():
 
         if not in_spec:
             sleep(2)
-            log_to_file('Attempting to stabilize temperature at stpt={} again...'.args.step_temp)
+            log_to_file('Attempting to stabilize temperature at stpt={} again...'.format(args.step_temp))
             return blocking_func()
     return chamber_avg, chamber_stdev
 
